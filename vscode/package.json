@@ -1,0 +1,52 @@
+{
+  "name": "jimmer-dto-lsp-vscode",
+  "displayName": "Jimmer DTO LSP",
+  "publisher": "jimmer-dto-lsp-vscode",
+  "author": "Enaium",
+  "version": "1.0.0",
+  "description": "A language server for Jimmer DTO",
+  "icon": "icons/logo.png",
+  "main": "out/extensions",
+  "scripts": {
+    "compile": "tsc -b .",
+    "package": "vsce package"
+  },
+  "activationEvents": [
+    "onLanguage:plaintext"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Enaium/jimmer-dto-lsp"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "jimmer-dto",
+        "extensions": [
+          ".dto"
+        ],
+        "aliases": [
+          "Jimmer DTO"
+        ],
+        "icon": {
+          "light": "./icons/logo.svg",
+          "dark": "./icons/logo.svg"
+        }
+      }
+    ]
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "keywords": [],
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@types/vscode": "^1.75.0",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "glob": "^11.0.0",
+    "vscode-languageclient": "^9.0.1"
+  }
+}

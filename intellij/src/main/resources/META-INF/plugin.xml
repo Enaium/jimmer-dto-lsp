@@ -1,0 +1,26 @@
+<idea-plugin>
+    <id>cn.enaium.jimmer.dto.lsp.ij</id>
+    <name>Jimmer DTO LSP</name>
+    <vendor email="enaium@outlook.com" url="https://www.enaium.cn">Enaium</vendor>
+    <description>
+        <![CDATA[<h1>A language server for Jimmer DTO</h1>
+        <p>Provides support for Jimmer DTO in IntelliJ IDEA.</p>]]>
+    </description>
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.redhat.devtools.lsp4ij</depends>
+    <extensions defaultExtensionNs="com.intellij">
+        <fileType name="Jimmer DTO" implementationClass="cn.enaium.jimmer.dto.lsp.intellij.DtoFileType"
+                  language="jimmer-dto"
+                  extensions="dto" fieldName="INSTANCE"/>
+    </extensions>
+    <extensions defaultExtensionNs="com.redhat.devtools.lsp4ij">
+        <server id="jimmer-dto" name="Jimmer DTO"
+                factoryClass="cn.enaium.jimmer.dto.lsp.intellij.DtoLanguageServerFactory">
+            <description>
+                <![CDATA[<h1>A language server for Jimmer DTO</h1>
+                <p>Provides support for Jimmer DTO in IntelliJ IDEA.</p>]]>
+            </description>
+        </server>
+        <languageMapping language="jimmer-dto" serverId="jimmer-dto"/>
+    </extensions>
+</idea-plugin>
