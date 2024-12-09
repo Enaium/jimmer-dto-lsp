@@ -1,9 +1,9 @@
 {
   "name": "jimmer-dto-lsp-vscode",
   "displayName": "Jimmer DTO LSP",
-  "publisher": "jimmer-dto-lsp-vscode",
+  "publisher": "enaium",
   "author": "Enaium",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A language server for Jimmer DTO",
   "icon": "icons/logo.png",
   "main": "out/extensions",

@@ -15,7 +15,7 @@
  */
 
 import path = require("path");
-import { ExtensionContext } from "vscode";
+import { ExtensionContext, window } from "vscode";
 
 import {
   LanguageClient,
@@ -24,8 +24,8 @@ import {
   TransportKind,
 } from "vscode-languageclient/node";
 
+const serverJar = path.join(__dirname, "server.jar");
 let client: LanguageClient;
-const serverJar = path.join(__dirname, "server", "server.jar");
 
 export function activate(context: ExtensionContext) {
   const serverOptions: ServerOptions = {
