@@ -193,7 +193,7 @@ class DtoTextDocumentService(private val workspaceFolders: MutableSet<String>) :
         val classpath = mutableListOf<Path>()
         workspaceFolders.forEach workspaceFolder@{ workspaceFolder ->
             val path = URI.create(workspaceFolder).toPath()
-            classpath.addAll(findJavaOrKotlinClasspath(path))
+            findClasspath(path, classpath)
         }
         val context = Context(URLClassLoader(classpath.map { it.toUri().toURL() }.toTypedArray()))
         val lexer = DtoLexer(CharStreams.fromString(content))

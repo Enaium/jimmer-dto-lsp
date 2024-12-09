@@ -17,22 +17,51 @@
 package cn.enaium.jimmer.dto.lsp
 
 import java.nio.file.Path
-import kotlin.io.path.PathWalkOption
-import kotlin.io.path.walk
+import kotlin.io.path.isDirectory
+import kotlin.io.path.name
 
 /**
  * @author Enaium
  */
-fun findJavaOrKotlinClasspath(path: Path): List<Path> {
-    val classpath = mutableListOf<Path>()
-    path.walk(PathWalkOption.INCLUDE_DIRECTORIES).forEach {
-        if (it.fileName.toString() == "main"
-            && (listOf("java", "kotlin").contains(it.parent?.fileName?.toString()))
-            && it.parent?.parent?.fileName?.toString() == "classes"
-            && listOf("build", "target").contains(it.parent?.parent?.parent?.fileName?.toString())
-        ) {
-            classpath.add(it)
+private val classpathDirs = listOf(
+    "build/classes/kotlin/main",
+    "build/classes/java/main",
+    "build/tmp/kotlin-classes/debug",
+    "build/intermediates/javac/debug/classes",
+    "build/intermediates/javac/debug/compileDebugJavaWithJavac/classes",
+)
+
+private val noClassPathDirNames = listOf("node_modules", "src")
+
+fun findClasspath(path: Path, results: MutableList<Path>) {
+    path.toFile().listFiles()?.forEach {
+        val file = it.toPath()
+        if (!file.isDirectory() || file.name.startsWith(".") || noClassPathDirNames.contains(file.name)) {
+            return@forEach
+        }
+
+        var ok = false
+        for (classpathDir in classpathDirs) {
+            val splitClasspath = classpathDir.split("/").reversed()
+            if (splitClasspath[0] == file.name) {
+                var parent: Path? = file.parent
+                var okCount = 0
+                for (i in 1..<splitClasspath.size) {
+                    if (parent?.name == splitClasspath[i]) {
+                        parent = parent.parent
+                        okCount++
+                    }
+                }
+                if (okCount == splitClasspath.size - 1) {
+                    ok = true
+                }
+            }
+        }
+
+        if (!ok) {
+            findClasspath(file, results)
+        } else {
+            results.add(file)
         }
     }
-    return classpath
 }
