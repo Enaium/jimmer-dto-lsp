@@ -16,6 +16,7 @@
 
 package cn.enaium.jimmer.dto.lsp.compiler
 
+import cn.enaium.jimmer.dto.lsp.Main.logger
 import org.babyfish.jimmer.Formula
 import org.babyfish.jimmer.Immutable
 import org.babyfish.jimmer.dto.compiler.spi.BaseProp
@@ -28,6 +29,7 @@ import kotlin.reflect.KClass
  */
 class ImmutableProp(
     private val context: Context,
+    val declaringType: ImmutableType,
     val member: KCallable<*>
 ) : BaseProp {
     private val targetDeclaration = if (isList) {
@@ -106,7 +108,11 @@ class ImmutableProp(
     override val isNullable: Boolean =
         member.returnType.isMarkedNullable
 
-    override val isRecursive: Boolean = false
+    override val isRecursive: Boolean by lazy {
+        declaringType.isEntity && manyToManyViewBaseProp === null && targetDeclaration !== null && declaringType.klass.isAssignableFrom(
+            targetDeclaration
+        )
+    }
 
     override val isTransient: Boolean =
         member.annotations.any { it.annotationClass.qualifiedName == Transient::class.qualifiedName }

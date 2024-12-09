@@ -6,6 +6,15 @@
         <![CDATA[<h1>A language server for Jimmer DTO</h1>
         <p>Provides support for Jimmer DTO in IntelliJ IDEA.</p>]]>
     </description>
+    <change-notes>
+        <![CDATA[<h1>Change notes</h1>
+        <p><b>1.0.2</b></p>
+        <ul><li>Support 'isRecursive'</li></ul>
+        <p><b>1.0.1</b></p>
+        <ul><li>Better to find classpath</li></ul>
+        <p><b>1.0.0</b></p>
+        <ul><li>First publish</li></ul>]]>
+    </change-notes>
     <depends>com.intellij.modules.platform</depends>
     <depends>com.redhat.devtools.lsp4ij</depends>
     <extensions defaultExtensionNs="com.intellij">

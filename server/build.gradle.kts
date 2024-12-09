@@ -6,7 +6,7 @@ plugins {
 
 val archiveName = "jimmer-dto-lsp"
 group = "cn.enaium.jimmer"
-version = "1.0.1"
+version = "1.0.2"
 
 repositories {
     mavenCentral()
