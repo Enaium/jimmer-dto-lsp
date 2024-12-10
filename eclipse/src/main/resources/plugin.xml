@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         point="org.eclipse.ui.editors">
+      <editor
+            default="false"
+            id="cn.enaium.jimmer.dto.lsp.eclipse"
+            name="name">
+      </editor>
+   </extension>
+   <extension
+         point="org.eclipse.lsp4e.languageServer">
+      <server
+            class="cn.enaium.jimmer.dto.lsp.eclipse.DtoStreamConnectionProvider"
+            id="cn.enaium.jimmer.dto.lsp.eclipse"
+            label="cn.enaium.jimmer.dto.lsp.eclipse">
+      </server>
+      <contentTypeMapping
+            contentType="jimmer.dto"
+            id="cn.enaium.jimmer.dto.lsp.eclipse">
+      </contentTypeMapping>
+   </extension>
+   <extension
+         point="org.eclipse.core.contenttype.contentTypes">
+      <content-type
+            base-type="org.eclipse.core.runtime.text"
+            file-extensions="dto"
+            id="jimmer.dto"
+            name="JimmerDTO"
+            priority="normal">
+      </content-type>
+   </extension>
+
+</plugin>

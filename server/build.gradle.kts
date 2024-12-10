@@ -3,10 +3,7 @@ plugins {
     alias(libs.plugins.shadow)
 }
 
-
 val archiveName = "jimmer-dto-lsp"
-group = "cn.enaium.jimmer"
-version = "1.0.3"
 
 repositories {
     mavenCentral()

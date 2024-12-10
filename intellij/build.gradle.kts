@@ -4,9 +4,6 @@ plugins {
     alias(libs.plugins.intellij)
 }
 
-group = "cn.enaium.jimmer"
-version = "1.0.3"
-
 repositories {
     mavenCentral()
     intellijPlatform {
