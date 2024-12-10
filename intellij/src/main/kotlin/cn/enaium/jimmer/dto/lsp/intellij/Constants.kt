@@ -27,4 +27,5 @@ object Constants {
     const val ID = "jimmer-dto"
     const val DISPLAY = "Jimmer DTO"
     const val EXTENSION = "dto"
+    const val HOME = "jimmer-dto-lsp"
 }

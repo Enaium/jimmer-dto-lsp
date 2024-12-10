@@ -31,20 +31,27 @@ import kotlin.io.path.*
  */
 class DtoLanguageServerFactory : LanguageServerFactory {
     override fun createConnectionProvider(project: Project): StreamConnectionProvider {
-        val dir = Path(System.getProperty("user.home")).resolve(Constants.ID)
+        val dir = Path(System.getProperty("user.home")).resolve(Constants.HOME)
         if (!dir.exists()) {
             dir.createDirectories()
         }
         val localJarFile = dir.resolve("server.jar")
-        if (localJarFile.exists()) {
-            localJarFile.delete()
-        }
-        object {}::class.java.classLoader.getResourceAsStream("server.jar")
-            ?.use { inputStream: InputStream ->
-                localJarFile.outputStream().use { outputStream: OutputStream ->
-                    inputStream.copyTo(outputStream)
-                }
+        try {
+            if (localJarFile.exists()) {
+                localJarFile.delete()
             }
+            object {}::class.java.classLoader.getResourceAsStream("server.jar")
+                ?.use { inputStream: InputStream ->
+                    localJarFile.outputStream().use { outputStream: OutputStream ->
+                        inputStream.copyTo(outputStream)
+                    }
+                }
+        } catch (_: Exception) {
+        }
+
+        if (!localJarFile.exists()) {
+            throw RuntimeException("Local server jar not found")
+        }
 
         return OSProcessStreamConnectionProvider(
             GeneralCommandLine(
