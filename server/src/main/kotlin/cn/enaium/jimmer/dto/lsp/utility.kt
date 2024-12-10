@@ -28,6 +28,7 @@ private val classpathDirs = listOf(
     "build/classes/kotlin/test",
     "build/classes/java/main",
     "build/classes/java/test",
+    "target/classes",
     "build/tmp/kotlin-classes/debug",
     "build/intermediates/javac/debug/classes",
     "build/intermediates/javac/debug/compileDebugJavaWithJavac/classes",
