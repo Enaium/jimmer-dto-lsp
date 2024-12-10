@@ -8,6 +8,8 @@
     </description>
     <change-notes>
         <![CDATA[<h1>Change notes</h1>
+        <p><b>1.0.3</b></p>
+        <ul><li>Support `KTransientResolver` etc.</li></ul>
         <p><b>1.0.2</b></p>
         <ul><li>Support 'isRecursive'</li></ul>
         <p><b>1.0.1</b></p>
