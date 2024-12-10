@@ -52,7 +52,7 @@ class DtoLanguageServer : LanguageServer {
             })
             semanticTokensProvider = SemanticTokensWithRegistrationOptions().apply {
                 legend = SemanticTokensLegend().apply {
-                    tokenTypes = listOf("comment", "keyword", "function", "string", "number")
+                    tokenTypes = listOf("comment", "keyword", "function", "string", "number", "decorator")
                 }
                 setFull(true)
             }

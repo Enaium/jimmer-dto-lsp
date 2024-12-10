@@ -100,10 +100,11 @@ class DtoTextDocumentService(private val workspaceFolders: MutableSet<String>) :
                         previousChar = currentChar
                     }
                 }
-                // export, package, import, as, fixed, static, dynamic, fuzzy, implements, ?, !, ^, $, *, -
+                // export, package, import, as, fixed, static, dynamic, fuzzy, implements, ?, !, ^, $, *, -, class
                 DtoLexer.T__0, DtoLexer.T__3, DtoLexer.T__4, DtoLexer.T__8, DtoLexer.T__9,
                 DtoLexer.T__10, DtoLexer.T__11, DtoLexer.T__12, DtoLexer.T__13, DtoLexer.T__18,
-                DtoLexer.T__19, DtoLexer.T__20, DtoLexer.T__21, DtoLexer.T__24, DtoLexer.T__25 -> {
+                DtoLexer.T__19, DtoLexer.T__20, DtoLexer.T__21, DtoLexer.T__24, DtoLexer.T__25,
+                DtoLexer.T__34 -> {
                     val start = token.range().start
                     data.add(start.line - previousLine)
                     data.add(if (previousLine == start.line) start.character - previousChar else start.character)
@@ -121,7 +122,7 @@ class DtoTextDocumentService(private val workspaceFolders: MutableSet<String>) :
                         data.add(start.line - previousLine)
                         data.add(if (previousLine == start.line) start.character - previousChar else start.character)
                         data.add(token.text.length + nextToken.text.length)
-                        data.add(2)
+                        data.add(if (token.type == DtoLexer.T__29) 2 else 5)
                         data.add(0)
                         previousLine = start.line
                         previousChar = start.character

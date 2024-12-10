@@ -29,10 +29,10 @@ import java.util.logging.Logger
  * @author Enaium
  */
 fun main() {
-    startDtoServer(System.`in`, System.out)
+    start(System.`in`, System.out)
 }
 
-fun startDtoServer(input: InputStream, output: OutputStream) {
+fun start(input: InputStream, output: OutputStream) {
     Locale.setDefault(Locale.ENGLISH)
     val server = DtoLanguageServer()
     val launcher = Launcher.createLauncher(server, LanguageClient::class.java, input, output)
