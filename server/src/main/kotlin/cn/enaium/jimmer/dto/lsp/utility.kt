@@ -25,7 +25,9 @@ import kotlin.io.path.name
  */
 private val classpathDirs = listOf(
     "build/classes/kotlin/main",
+    "build/classes/kotlin/test",
     "build/classes/java/main",
+    "build/classes/java/test",
     "build/tmp/kotlin-classes/debug",
     "build/intermediates/javac/debug/classes",
     "build/intermediates/javac/debug/compileDebugJavaWithJavac/classes",

@@ -6,7 +6,7 @@ plugins {
 
 val archiveName = "jimmer-dto-lsp"
 group = "cn.enaium.jimmer"
-version = "1.0.2"
+version = "1.0.3"
 
 repositories {
     mavenCentral()
@@ -16,7 +16,9 @@ dependencies {
     implementation(libs.lsp4j)
     implementation(libs.jimmer.dtoCompiler)
     implementation(libs.jimmer.core)
+    implementation(libs.jimmer.coreKotlin)
     implementation(libs.jimmer.sql)
+    implementation(libs.jimmer.sqlKotlin)
     testImplementation(kotlin("test"))
     implementation(kotlin("reflect"))
 }
