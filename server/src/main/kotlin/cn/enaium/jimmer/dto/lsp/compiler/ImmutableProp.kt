@@ -29,7 +29,7 @@ import kotlin.reflect.KClass
  */
 class ImmutableProp(
     private val context: Context,
-    val declaringType: ImmutableType,
+    private val declaringType: ImmutableType,
     val member: KCallable<*>
 ) : BaseProp {
     private val targetDeclaration = if (isList) {
@@ -68,9 +68,11 @@ class ImmutableProp(
             emptyList()
         }
 
-    val isStringProp: Boolean =
-        member.returnType.classifier.toString() == String::class.qualifiedName ||
-                member.returnType.classifier.toString() == java.lang.String::class.qualifiedName
+    val isStringProp: Boolean
+        get() {
+            return member.returnType.classifier == String::class ||
+                    member.returnType.classifier == java.lang.String::class
+        }
 
     override val idViewBaseProp: BaseProp? = null
 
