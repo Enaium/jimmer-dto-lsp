@@ -11,6 +11,7 @@
 
 - Visual Studio Code
 - IntelliJ IDEA
+- Eclipse
 - Any IDEs that support LSP
 
 ## Supported Platforms
@@ -22,8 +23,8 @@
 - [Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=enaium.jimmer-dto-lsp-vscode): Install the
   extension from the marketplace
 - [IntelliJ IDEA](https://plugins.jetbrains.com/plugin/26045-jimmer-dto-lsp): Install the plugin from the marketplace
-- Eclipse: First install new software [LSP4E](https://download.eclipse.org/lsp4e/releases/latest/) and then move the LSP
-  server to the eclipse `dropins` folder from the release page
+- Eclipse: First install new software [LSP4E](https://download.eclipse.org/lsp4e/releases/latest/) and then move the plugin
+  to the `dropins` folder
 - Other IDEs: Install the LSP server from the release page
 
 ## Usage
