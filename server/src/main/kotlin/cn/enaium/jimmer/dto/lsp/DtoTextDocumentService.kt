@@ -68,6 +68,49 @@ class DtoTextDocumentService(private val workspaceFolders: MutableSet<String>) :
         return CompletableFuture.completedFuture(semanticTokens(params.textDocument.uri))
     }
 
+    override fun foldingRange(params: FoldingRangeRequestParams): CompletableFuture<List<FoldingRange>> {
+        val ranges = mutableListOf<FoldingRange>()
+        val document =
+            documentManager.getDocument(params.textDocument.uri) ?: return CompletableFuture.completedFuture(ranges)
+        val lexer = DtoLexer(CharStreams.fromString(document.content))
+        val commonToken = CommonTokenStream(lexer)
+        commonToken.fill()
+        val tokens = commonToken.tokens.filter { it.type == DtoLexer.T__5 || it.type == DtoLexer.T__7 }
+        tokens.forEach { _ ->
+            var startLine = -1
+            var startCount = 0
+
+            tokens.forEach {
+                when (it.type) {
+                    DtoLexer.T__5 -> {
+                        if (!ranges.any { range -> range.startLine == it.line - 1 }) {
+                            if (startLine == -1) {
+                                startLine = it.line - 1
+                            } else {
+                                startCount++
+                            }
+                        }
+                    }
+
+                    DtoLexer.T__7 -> {
+                        val endLine = it.line - 2
+                        if (!ranges.any { range -> range.endLine == endLine }) {
+                            if (startCount == 0) {
+                                ranges.add(FoldingRange(startLine, endLine).apply {
+                                    kind = FoldingRangeKind.Region
+                                })
+                                startLine = -1
+                            } else {
+                                startCount--
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return CompletableFuture.completedFuture(ranges)
+    }
+
     private fun Token.range(): Range {
         return Range(
             Position(line - 1, charPositionInLine),

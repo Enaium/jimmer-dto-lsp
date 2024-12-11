@@ -33,7 +33,7 @@
 - Open a Jimmer DTO file
 - Enjoy the features
 
-## Support classpath
+## Supported classpath
 
 - `build/classes/kotlin/main` Gradle Kotlin
 - `build/classes/kotlin/test` Gradle Kotlin

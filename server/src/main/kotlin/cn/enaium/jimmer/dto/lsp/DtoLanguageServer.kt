@@ -56,6 +56,7 @@ class DtoLanguageServer : LanguageServer {
                 }
                 setFull(true)
             }
+            setFoldingRangeProvider(true)
         }))
     }
 
