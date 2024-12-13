@@ -17,14 +17,11 @@
 package cn.enaium.jimmer.dto.lsp
 
 import cn.enaium.jimmer.dto.lsp.Main.client
-import cn.enaium.jimmer.dto.lsp.compiler.Context
-import cn.enaium.jimmer.dto.lsp.compiler.DocumentDtoCompiler
-import cn.enaium.jimmer.dto.lsp.compiler.ImmutableType
-import cn.enaium.jimmer.dto.lsp.compiler.get
+import cn.enaium.jimmer.dto.lsp.compiler.*
 import org.antlr.v4.runtime.*
 import org.babyfish.jimmer.dto.compiler.*
-import org.babyfish.jimmer.dto.compiler.DtoParser.DtoContext
 import org.eclipse.lsp4j.*
+import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.services.TextDocumentService
 import java.io.Reader
 import java.net.URI
@@ -33,25 +30,20 @@ import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import kotlin.io.path.toPath
 
+
 class DtoTextDocumentService(private val workspaceFolders: MutableSet<String>) : TextDocumentService {
     private val documentManager = DocumentManager()
 
     override fun didOpen(params: DidOpenTextDocumentParams) {
         val content = params.textDocument.text
         content.isBlank() && return
-        documentManager.openOrUpdateDocument(
-            params.textDocument.uri,
-            DtoDocument(content, validate(content, params.textDocument.uri))
-        )
+        validate(content, params.textDocument.uri)
     }
 
     override fun didChange(params: DidChangeTextDocumentParams) {
         val content = params.contentChanges[0].text
         content.isBlank() && return
-        documentManager.openOrUpdateDocument(
-            params.textDocument.uri,
-            DtoDocument(content, validate(content, params.textDocument.uri))
-        )
+        validate(content, params.textDocument.uri)
     }
 
     override fun didClose(params: DidCloseTextDocumentParams) {
@@ -59,9 +51,9 @@ class DtoTextDocumentService(private val workspaceFolders: MutableSet<String>) :
     }
 
     override fun didSave(params: DidSaveTextDocumentParams) {
-        documentManager.getDocument(params.textDocument.uri)?.content?.also {
-            validate(it, params.textDocument.uri)
-        }
+        val content = params.text
+        content.isBlank() && return
+        validate(content, params.textDocument.uri)
     }
 
     override fun semanticTokensFull(params: SemanticTokensParams): CompletableFuture<SemanticTokens> {
@@ -72,18 +64,140 @@ class DtoTextDocumentService(private val workspaceFolders: MutableSet<String>) :
         val ranges = mutableListOf<FoldingRange>()
         val document =
             documentManager.getDocument(params.textDocument.uri) ?: return CompletableFuture.completedFuture(ranges)
-        val lexer = DtoLexer(CharStreams.fromString(document.content))
-        val commonToken = CommonTokenStream(lexer)
-        commonToken.fill()
-        val tokens = commonToken.tokens.filter { it.type == DtoLexer.T__5 || it.type == DtoLexer.T__7 }
-        tokens.forEach { _ ->
+        return CompletableFuture.completedFuture(getBodyRange(document.commonToken.tokens).map {
+            FoldingRange(it.start.line, it.end.line - 1).apply {
+                kind = FoldingRangeKind.Region
+            }
+        })
+    }
+
+    override fun completion(params: CompletionParams): CompletableFuture<Either<List<CompletionItem>, CompletionList>> {
+        val document = documentManager.getDocument(params.textDocument.uri)
+            ?: return CompletableFuture.completedFuture(Either.forLeft(emptyList()))
+        val triggerChar = params.context?.triggerCharacter
+        when (triggerChar) {
+            "*" -> run {
+                val position = params.position
+                position.character < 3 && return@run
+                val line = document.content.split("\n")[position.line]
+                val before3Chars = line.substring(position.character - 3, params.position.character)
+                before3Chars != "/**" && return@run
+                return CompletableFuture.completedFuture(
+                    Either.forLeft(listOf(CompletionItem("BlockComment").apply {
+                        insertText = "\n * $0 \n */"
+                        kind = CompletionItemKind.Text
+                        insertTextFormat = InsertTextFormat.Snippet
+                    }))
+                )
+            }
+
+            null -> run {
+                var sort = 0
+
+                val completionItems = mutableListOf<CompletionItem>()
+                val callTraceToRange = mutableMapOf<String, Pair<Token, Token>>()
+                val callTraceToProps = mutableMapOf<String, List<ImmutableProp>>()
+
+                document.ast.dtoTypes.forEach { dtoType ->
+                    getBodyRange(dtoType.dtoBody(), dtoType.name.text, callTraceToRange)
+                }
+
+                document.dtoTypes.forEach { dtoType ->
+                    getProps(dtoType.baseType, "${dtoType.name}", callTraceToProps)
+                }
+
+                val current = callTraceToRange.filter {
+                    Range(
+                        it.value.first.position(),
+                        it.value.second.position()
+                    ).overlaps(params.position)
+                }.entries.sortedWith { o1, o2 ->
+                    o2.value.first.line - o1.value.first.line
+                }.firstOrNull()?.let {
+                    callTraceToProps[it.key]?.run {
+                        completionItems += map { prop ->
+                            prop.completeItem(prop.name, sort++)
+                        }
+                    }
+                    it
+                }
+
+                val isInBlock = current != null
+                val isInSpecificationBlock =
+                    document.dtoTypes.find { current?.key?.startsWith("${it.name}") == true }?.modifiers?.contains(
+                        DtoModifier.SPECIFICATION
+                    ) == true
+
+                completionItems.addAll(listOf("allScalars", "allReferences").map { name ->
+                    CompletionItem(name).apply {
+                        kind = CompletionItemKind.Function
+                        labelDetails = CompletionItemLabelDetails().apply {
+                            description = "macro"
+                        }
+                        insertText = "#$name"
+                        insertTextFormat = InsertTextFormat.Snippet
+                        sortText = "${sort++}"
+                    }
+                })
+
+                completionItems += (if (isInSpecificationBlock) qbeFuncNames else normalFuncNames).map {
+                    CompletionItem(it).apply {
+                        kind = CompletionItemKind.Method
+                        labelDetails = CompletionItemLabelDetails().apply {
+                            description = "function"
+                        }
+                        insertText = "$it($0)"
+                        insertTextFormat = InsertTextFormat.Snippet
+                        sortText = "${sort++}"
+                    }
+                }
+
+                completionItems += if (isInBlock) {
+                    listOf("as", "implements", "class")
+                } else {
+                    DtoModifier.entries.map { it.name.lowercase() } + listOf("export", "package", "import")
+                }.map {
+                    CompletionItem(it).apply {
+                        kind = CompletionItemKind.Keyword
+                        sortText = "${sort++}"
+                    }
+                }
+                return CompletableFuture.completedFuture(Either.forLeft(completionItems))
+            }
+        }
+        return CompletableFuture.completedFuture(Either.forLeft(emptyList()))
+    }
+
+    private fun Token.range(): Range {
+        return Range(
+            Position(line - 1, charPositionInLine),
+            Position(line - 1 + text.count { it == '\n' }, text.length - text.lastIndexOf('\n') - 1)
+        )
+    }
+
+    private fun Token.position(): Position {
+        return Position(line - 1, charPositionInLine - 1)
+    }
+
+    private fun Range.overlaps(range: Range): Boolean {
+        return start.line < range.start.line && end.line > range.end.line
+    }
+
+    private fun Range.overlaps(position: Position): Boolean {
+        return start.line < position.line && end.line > position.line
+    }
+
+    private fun getBodyRange(tokens: List<Token>): List<Range> {
+        val filter = tokens.filter { it.type == DtoLexer.T__5 || it.type == DtoLexer.T__7 }
+        val ranges = mutableListOf<Range>()
+        filter.forEach { _ ->
             var startLine = -1
             var startCount = 0
 
-            tokens.forEach {
+            filter.forEach {
                 when (it.type) {
                     DtoLexer.T__5 -> {
-                        if (!ranges.any { range -> range.startLine == it.line - 1 }) {
+                        if (!ranges.any { range -> range.start.line == it.line - 1 }) {
                             if (startLine == -1) {
                                 startLine = it.line - 1
                             } else {
@@ -93,12 +207,10 @@ class DtoTextDocumentService(private val workspaceFolders: MutableSet<String>) :
                     }
 
                     DtoLexer.T__7 -> {
-                        val endLine = it.line - 2
-                        if (!ranges.any { range -> range.endLine == endLine }) {
+                        val endLine = it.line - 1
+                        if (!ranges.any { range -> range.end.line == endLine }) {
                             if (startCount == 0) {
-                                ranges.add(FoldingRange(startLine, endLine).apply {
-                                    kind = FoldingRangeKind.Region
-                                })
+                                ranges.add(Range(Position(startLine, 0), Position(endLine, 0)))
                                 startLine = -1
                             } else {
                                 startCount--
@@ -108,14 +220,7 @@ class DtoTextDocumentService(private val workspaceFolders: MutableSet<String>) :
                 }
             }
         }
-        return CompletableFuture.completedFuture(ranges)
-    }
-
-    private fun Token.range(): Range {
-        return Range(
-            Position(line - 1, charPositionInLine),
-            Position(line - 1 + text.count { it == '\n' }, text.length - text.lastIndexOf('\n') - 1)
-        )
+        return ranges
     }
 
     private fun semanticTokens(uri: String): SemanticTokens {
@@ -233,7 +338,7 @@ class DtoTextDocumentService(private val workspaceFolders: MutableSet<String>) :
         return SemanticTokens(data)
     }
 
-    private fun validate(content: String, uri: String): DtoContext {
+    private fun validate(content: String, uri: String) {
         val classpath = mutableListOf<Path>()
         workspaceFolders.forEach workspaceFolder@{ workspaceFolder ->
             val path = URI.create(workspaceFolder).toPath()
@@ -282,7 +387,15 @@ class DtoTextDocumentService(private val workspaceFolders: MutableSet<String>) :
                 }, "", "", emptyList(), ""))
             context.loader[documentDtoCompiler.sourceTypeName]?.run {
                 val immutableType = ImmutableType(context, this)
-                documentDtoCompiler.compile(immutableType)
+                val compile = documentDtoCompiler.compile(immutableType)
+                client?.publishDiagnostics(PublishDiagnosticsParams().apply {
+                    this.uri = uri
+                    diagnostics = emptyList()
+                })
+                documentManager.openOrUpdateDocument(
+                    uri,
+                    DtoDocument(content, ast, lexer, token, immutableType, compile)
+                )
             } ?: run {
                 client?.publishDiagnostics(PublishDiagnosticsParams().apply {
                     this.uri = uri
@@ -292,36 +405,107 @@ class DtoTextDocumentService(private val workspaceFolders: MutableSet<String>) :
                         message = "No immutable type '${documentDtoCompiler.sourceTypeName}'"
                     })
                 })
-                return ast
+                documentManager.openOrUpdateDocument(
+                    uri,
+                    documentManager.getDocument(uri)?.copy(content = content) ?: DtoDocument(content, ast, lexer, token)
+                )
             }
         } catch (dtoAst: DtoAstException) {
-            val colNumber = dtoAst.javaClass.getDeclaredField("colNumber").also {
-                it.isAccessible = true
-            }.getInt(dtoAst)
             client?.publishDiagnostics(PublishDiagnosticsParams().apply {
                 this.uri = uri
                 diagnostics = listOf(Diagnostic().apply {
                     range = Range(
-                        Position(dtoAst.lineNumber - 1, colNumber),
-                        Position(dtoAst.lineNumber - 1, colNumber + 1)
+                        Position(dtoAst.lineNumber - 1, dtoAst.colNumber),
+                        Position(dtoAst.lineNumber - 1, dtoAst.colNumber + 1)
                     )
                     severity = DiagnosticSeverity.Error
                     message = dtoAst.message
                 })
             })
-            return ast
+            documentManager.openOrUpdateDocument(
+                uri,
+                documentManager.getDocument(uri)?.copy(content = content) ?: DtoDocument(content, ast, lexer, token)
+            )
         }
-
-        if (parser.numberOfSyntaxErrors == 0) {
-            client?.publishDiagnostics(PublishDiagnosticsParams().apply {
-                this.uri = uri
-                diagnostics = emptyList()
-            })
-        }
-        return ast
     }
 
     private fun Token.isDtoModifier(): Boolean {
         return DtoModifier.entries.map { it.name.lowercase() }.contains(text)
+    }
+
+    private fun ImmutableProp.type(): PropType {
+        return if (isId) {
+            PropType.ID
+        } else if (isKey) {
+            PropType.KEY
+        } else if (isEmbedded) {
+            PropType.EMBEDDED
+        } else if (isFormula) {
+            PropType.FORMULA
+        } else if (isTransient) {
+            if (hasTransientResolver()) PropType.CALCULATION else PropType.TRANSIENT
+        } else if (isRecursive) {
+            PropType.RECURSIVE
+        } else if (isAssociation(true)) {
+            PropType.ASSOCIATION
+        } else if (isList) {
+            PropType.LIST
+        } else if (isLogicalDeleted) {
+            PropType.LOGICAL_DELETED
+        } else if (isNullable) {
+            PropType.NULLABLE
+        } else {
+            PropType.PROPERTY
+        }
+    }
+
+    private fun ImmutableProp.completeItem(name: String, sort: Int): CompletionItem {
+        return CompletionItem(name).apply {
+            kind = CompletionItemKind.Field
+            val type = type()
+            labelDetails = CompletionItemLabelDetails().apply {
+                description = "from ${declaringType.name} is ${type.description}"
+            }
+
+            if (type == PropType.ASSOCIATION) {
+                insertText = "$name { \n\t$0\n}"
+                insertTextFormat = InsertTextFormat.Snippet
+            } else if (type == PropType.RECURSIVE) {
+                insertText = "$name*"
+            }
+
+            sortText = "$sort"
+        }
+    }
+
+    private fun getBodyRange(
+        bodyContext: DtoParser.DtoBodyContext,
+        prefix: String,
+        results: MutableMap<String, Pair<Token, Token>>
+    ) {
+        results[prefix] = bodyContext.start to bodyContext.stop
+        for (explicitProp in bodyContext.explicitProps) {
+            val positivePropContext = explicitProp.positiveProp() ?: continue
+            val dtoBodyContext = positivePropContext.dtoBody() ?: continue
+            val text = explicitProp.start.text
+            val x = prefix + "." + (if (text == "flat") explicitProp.positiveProp().props[0].text else text)
+            results[x] = explicitProp.start to explicitProp.stop
+            getBodyRange(dtoBodyContext, x, results)
+        }
+    }
+
+    private fun getProps(
+        immutableType: ImmutableType,
+        prefix: String,
+        results: MutableMap<String, List<ImmutableProp>>
+    ) {
+        results[prefix] = immutableType.properties.values.toList()
+        for (prop in immutableType.properties.values) {
+            if (prop.isAssociation(false) && prefix.count { it == '.' } < 10) {
+                prop.targetType?.run {
+                    getProps(this, prefix + "." + prop.name, results)
+                }
+            }
+        }
     }
 }

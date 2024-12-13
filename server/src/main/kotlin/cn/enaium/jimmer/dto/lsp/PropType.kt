@@ -16,21 +16,20 @@
 
 package cn.enaium.jimmer.dto.lsp
 
-import cn.enaium.jimmer.dto.lsp.compiler.ImmutableProp
-import cn.enaium.jimmer.dto.lsp.compiler.ImmutableType
-import org.antlr.v4.runtime.CommonTokenStream
-import org.babyfish.jimmer.dto.compiler.DtoLexer
-import org.babyfish.jimmer.dto.compiler.DtoParser.DtoContext
-import org.babyfish.jimmer.dto.compiler.DtoType
-
 /**
  * @author Enaium
  */
-data class DtoDocument(
-    val content: String,
-    val ast: DtoContext,
-    val lexer: DtoLexer,
-    val commonToken: CommonTokenStream,
-    val immutable: ImmutableType? = null,
-    val dtoTypes: List<DtoType<ImmutableType, ImmutableProp>> = emptyList()
-)
+enum class PropType(val description: String) {
+    ID("Id"),
+    KEY("Key"),
+    EMBEDDED("Embedded"),
+    FORMULA("Formula"),
+    CALCULATION("Calculation"),
+    TRANSIENT("Transient"),
+    RECURSIVE("Recursive"),
+    ASSOCIATION("Association"),
+    LIST("List"),
+    LOGICAL_DELETED("LogicalDeleted"),
+    NULLABLE("Nullable"),
+    PROPERTY("Property")
+}

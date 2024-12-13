@@ -16,6 +16,7 @@
 
 package cn.enaium.jimmer.dto.lsp
 
+import org.babyfish.jimmer.dto.compiler.Constants
 import java.nio.file.Path
 import kotlin.io.path.isDirectory
 import kotlin.io.path.name
@@ -68,3 +69,7 @@ fun findClasspath(path: Path, results: MutableList<Path>) {
         }
     }
 }
+
+val commonFuncNames = setOf("flat")
+val qbeFuncNames = Constants.QBE_FUNC_NAMES + commonFuncNames
+val normalFuncNames = setOf("id") + commonFuncNames

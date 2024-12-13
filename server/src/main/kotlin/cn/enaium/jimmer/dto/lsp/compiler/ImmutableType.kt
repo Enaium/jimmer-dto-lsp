@@ -45,7 +45,7 @@ class ImmutableType(
         superTypes.firstOrNull { !it.isMappedSuperclass }
 
     val declaredProperties: Map<String, ImmutableProp>
-        get() = klass.kotlin.members
+        get() = (klass.kotlin.members
             .filter { it.annotations.any { it.annotationClass.qualifiedName == Id::class.qualifiedName } }
             .associateBy({ it.name }) {
                 ImmutableProp(context, this, it)
@@ -53,7 +53,7 @@ class ImmutableType(
             .filter { it.annotations.any { it.annotationClass.qualifiedName != Id::class.qualifiedName } || it.annotations.isEmpty() }
             .associateBy({ it.name }) {
                 ImmutableProp(context, this, it)
-            }
+            }).filter { !Any::class.members.map { any -> any.name }.contains(it.key) }
 
     private val superPropMap: Map<String, ImmutableProp> = superTypes
         .flatMap { it.properties.values }

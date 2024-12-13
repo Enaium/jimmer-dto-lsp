@@ -29,7 +29,7 @@ import kotlin.reflect.KClass
  */
 class ImmutableProp(
     private val context: Context,
-    private val declaringType: ImmutableType,
+    val declaringType: ImmutableType,
     val member: KCallable<*>
 ) : BaseProp {
     private val targetDeclaration = if (isList) {
