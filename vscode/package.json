@@ -3,7 +3,7 @@
   "displayName": "Jimmer DTO LSP",
   "publisher": "enaium",
   "author": "Enaium",
-  "version": "1.0.5",
+  "version": "1.1.0",
   "description": "A language server for Jimmer DTO",
   "icon": "icons/logo.png",
   "main": "out/extensions",

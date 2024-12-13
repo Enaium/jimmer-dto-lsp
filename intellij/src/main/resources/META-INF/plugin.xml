@@ -8,6 +8,12 @@
     </description>
     <change-notes>
         <![CDATA[<h1>Change notes</h1>
+        <p><b>1.1.0</b></p>
+        <ul>
+            <li>Support 'textDocument/foldingRange'</li>
+            <li>Support 'textDocument/documentSymbol'</li>
+            <li>Support 'textDocument/completion' for prop, macro, function, keyword, comment etc.</li>
+        </ul>
         <p><b>1.0.4</b></p>
         <ul><li>Fix 'isStringProp'</li></ul>
         <p><b>1.0.3</b></p>
