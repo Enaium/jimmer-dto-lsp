@@ -63,6 +63,9 @@ class DtoLanguageServer : LanguageServer {
                     labelDetailsSupport = true
                 }
             }
+            setDocumentSymbolProvider(DocumentSymbolOptions().apply {
+                label = "Jimmer DTO"
+            })
         }))
     }
 

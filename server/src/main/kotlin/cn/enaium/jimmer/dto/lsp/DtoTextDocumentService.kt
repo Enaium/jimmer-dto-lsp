@@ -17,6 +17,7 @@
 package cn.enaium.jimmer.dto.lsp
 
 import cn.enaium.jimmer.dto.lsp.Main.client
+import cn.enaium.jimmer.dto.lsp.Main.logger
 import cn.enaium.jimmer.dto.lsp.compiler.*
 import org.antlr.v4.runtime.*
 import org.babyfish.jimmer.dto.compiler.*
@@ -168,6 +169,48 @@ class DtoTextDocumentService(private val workspaceFolders: MutableSet<String>) :
         return CompletableFuture.completedFuture(Either.forLeft(emptyList()))
     }
 
+    override fun documentSymbol(params: DocumentSymbolParams): CompletableFuture<MutableList<Either<SymbolInformation, DocumentSymbol>>> {
+        val document = documentManager.getDocument(params.textDocument.uri)
+            ?: return CompletableFuture.completedFuture(mutableListOf())
+
+        fun getDocumentSymbols(
+            bodyContext: DtoParser.DtoBodyContext,
+        ): MutableList<DocumentSymbol> {
+            val symbols = mutableListOf<DocumentSymbol>()
+            for (explicitProp in bodyContext.explicitProps) {
+                val positivePropContext = explicitProp.positiveProp() ?: continue
+                val dtoBodyContext = positivePropContext.dtoBody() ?: continue
+                val text = explicitProp.start.text
+                symbols.add(DocumentSymbol().apply {
+                    name = if (text == "flat") explicitProp.positiveProp().props[0].text else text
+                    kind = SymbolKind.Field
+                    range = Range(explicitProp.start.position(), explicitProp.stop.position())
+                    selectionRange = Range(explicitProp.start.position(), explicitProp.stop.position())
+                    children = getDocumentSymbols(dtoBodyContext)
+                })
+            }
+            return symbols
+        }
+
+        val documentSymbols = mutableListOf<DocumentSymbol>()
+
+        document.ast.dtoTypes.forEach { dtoType ->
+            documentSymbols.add(DocumentSymbol().apply {
+                name = dtoType.name.text
+                kind = SymbolKind.Class
+                range = Range(dtoType.name.position(), dtoType.stop.position())
+                selectionRange = Range(dtoType.name.position(), dtoType.stop.position())
+                children = getDocumentSymbols(dtoType.dtoBody())
+            })
+        }
+
+        return CompletableFuture.completedFuture(documentSymbols.map {
+            Either.forRight<SymbolInformation, DocumentSymbol>(
+                it
+            )
+        }.toMutableList())
+    }
+
     private fun Token.range(): Range {
         return Range(
             Position(line - 1, charPositionInLine),
@@ -176,7 +219,7 @@ class DtoTextDocumentService(private val workspaceFolders: MutableSet<String>) :
     }
 
     private fun Token.position(): Position {
-        return Position(line - 1, charPositionInLine - 1)
+        return Position(line - 1, charPositionInLine)
     }
 
     private fun Range.overlaps(range: Range): Boolean {
