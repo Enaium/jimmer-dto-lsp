@@ -6,6 +6,23 @@
 
 - Syntax highlighting
 - Compiler checking
+- Automatic completion for prop, macro, function, keyword, comment etc.
+- Folding
+- Structure view
+
+## Screenshots
+
+![highlighting](https://s2.loli.net/2024/12/13/yes1EwWzq3UHJYv.png)
+
+![compiler checking](https://s2.loli.net/2024/12/13/mEx8oJfgVs7BtpK.png)
+
+![comment](https://s2.loli.net/2024/12/13/zlIqFZaEOKfXmTG.gif)
+
+![prop](https://s2.loli.net/2024/12/13/DvS4n6xOLCuH23e.gif)
+
+![folding](https://s2.loli.net/2024/12/13/Rz5th8pDkrKT7Su.gif)
+
+![structure](https://s2.loli.net/2024/12/13/rjh9IMgSbdJ2o4n.gif)
 
 ## Supported IDEs
 
