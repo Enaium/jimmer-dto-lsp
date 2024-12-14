@@ -16,7 +16,10 @@
 
 package cn.enaium.jimmer.dto.lsp
 
+import org.antlr.v4.runtime.Token
 import org.babyfish.jimmer.dto.compiler.Constants
+import org.eclipse.lsp4j.Position
+import org.eclipse.lsp4j.Range
 import java.nio.file.Path
 import kotlin.io.path.isDirectory
 import kotlin.io.path.name
@@ -68,6 +71,22 @@ fun findClasspath(path: Path, results: MutableList<Path>) {
             results.add(file)
         }
     }
+}
+
+
+fun Token.range(): Range {
+    return Range(
+        Position(line - 1, charPositionInLine),
+        Position(line - 1 + text.count { it == '\n' }, text.length - text.lastIndexOf('\n') - 1)
+    )
+}
+
+fun Token.position(): Position {
+    return Position(line - 1, charPositionInLine)
+}
+
+fun Range.overlaps(position: Position): Boolean {
+    return start.line < position.line && end.line > position.line
 }
 
 val commonFuncNames = setOf("flat")
