@@ -16,10 +16,12 @@
 
 package cn.enaium.jimmer.dto.lsp.compiler
 
+import java.net.URLClassLoader
+
 /**
  * @author Enaium
  */
-class Context(val loader: ClassLoader) {
+class Context(val loader: URLClassLoader) {
 
     private val typeMap = mutableMapOf<Class<*>, ImmutableType>()
 
@@ -37,6 +39,8 @@ operator fun ClassLoader.get(name: String?): Class<*>? {
     return try {
         loadClass(name)
     } catch (e: ClassNotFoundException) {
+        return null
+    } catch (e: NoClassDefFoundError) {
         return null
     }
 }

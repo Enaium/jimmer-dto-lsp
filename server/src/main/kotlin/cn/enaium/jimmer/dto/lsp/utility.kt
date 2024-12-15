@@ -23,8 +23,8 @@ import org.eclipse.lsp4j.Range
 import java.io.File
 import java.net.URI
 import java.nio.file.Path
-import kotlin.io.path.isDirectory
-import kotlin.io.path.name
+import java.util.jar.JarFile
+import kotlin.io.path.*
 
 /**
  * @author Enaium
@@ -87,6 +87,33 @@ fun findProjectDir(dtoPath: Path): Path? {
         parent = parent.parent
     }
     return null
+}
+
+fun findClassNames(classpath: List<Path>): List<String> {
+    val results = mutableListOf<String>()
+    classpath.forEach { cp ->
+        if (cp.isDirectory()) {
+            cp.walk().filter { it.extension == "class" && !it.name.contains("$") }.forEach { classFile ->
+                val name = classFile.relativeTo(cp).pathString.substringBeforeLast(".").replace(File.separator, ".")
+                results.add(name)
+            }
+        } else if (cp.extension == "jar") {
+            val jarFile = cp.toFile()
+            val jar = JarFile(jarFile)
+            val entries = jar.entries()
+            while (entries.hasMoreElements()) {
+                val entry = entries.nextElement()
+                if (entry.isDirectory) continue
+                if (entry.name.endsWith(".class") && !entry
+                        .name.contains("$")
+                ) {
+                    val name = entry.name.substringBeforeLast(".").replace("/", ".")
+                    results.add(name)
+                }
+            }
+        }
+    }
+    return results
 }
 
 fun URI.toFile(): File {

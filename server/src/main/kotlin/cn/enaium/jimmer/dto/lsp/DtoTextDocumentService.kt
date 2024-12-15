@@ -23,7 +23,7 @@ import org.eclipse.lsp4j.services.TextDocumentService
 import java.util.concurrent.CompletableFuture
 
 
-class DtoTextDocumentService(private val workspaceFolders: MutableSet<String>) : TextDocumentService {
+class DtoTextDocumentService(workspaceFolders: MutableSet<String>) : TextDocumentService {
     private val documentManager = DocumentManager()
     private val documentSyncService = DocumentSyncService(workspaceFolders, documentManager)
     private val documentSemanticTokensFullService = DocumentSemanticTokensFullService(documentManager)

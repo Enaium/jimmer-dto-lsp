@@ -24,6 +24,8 @@
 
 ![structure](https://s2.loli.net/2024/12/13/rjh9IMgSbdJ2o4n.gif)
 
+![import annotation](https://s2.loli.net/2024/12/15/W6fSpoEUZXmguK8.gif)
+
 ## Supported IDEs
 
 - Visual Studio Code

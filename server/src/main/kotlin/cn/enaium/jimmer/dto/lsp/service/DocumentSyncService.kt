@@ -120,7 +120,7 @@ class DocumentSyncService(private val workspaceFolders: MutableSet<String>, docu
                 })
                 documentManager.openOrUpdateDocument(
                     uri,
-                    DtoDocument(content, ast, lexer, token, immutableType, compile)
+                    DtoDocument(content, ast, lexer, token, context, immutableType, classpath, compile)
                 )
             } ?: run {
                 client?.publishDiagnostics(PublishDiagnosticsParams().apply {
@@ -134,7 +134,22 @@ class DocumentSyncService(private val workspaceFolders: MutableSet<String>, docu
                 })
                 documentManager.openOrUpdateDocument(
                     uri,
-                    documentManager.getDocument(uri)?.copy(content = content) ?: DtoDocument(content, ast, lexer, token)
+                    documentManager.getDocument(uri)
+                        ?.copy(
+                            content = content,
+                            ast = ast,
+                            commonToken = token,
+                            context = context,
+                            classpath = classpath
+                        )
+                        ?: DtoDocument(
+                            content,
+                            ast,
+                            lexer,
+                            token,
+                            context,
+                            classpath = classpath
+                        )
                 )
             }
         } catch (dtoAst: DtoAstException) {
@@ -151,7 +166,22 @@ class DocumentSyncService(private val workspaceFolders: MutableSet<String>, docu
             })
             documentManager.openOrUpdateDocument(
                 uri,
-                documentManager.getDocument(uri)?.copy(content = content) ?: DtoDocument(content, ast, lexer, token)
+                documentManager.getDocument(uri)
+                    ?.copy(
+                        content = content,
+                        ast = ast,
+                        commonToken = token,
+                        context = context,
+                        classpath = classpath
+                    )
+                    ?: DtoDocument(
+                        content,
+                        ast,
+                        lexer,
+                        token,
+                        context,
+                        classpath = classpath
+                    )
             )
         }
     }

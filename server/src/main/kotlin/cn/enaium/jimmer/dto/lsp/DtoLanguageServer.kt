@@ -58,7 +58,7 @@ class DtoLanguageServer : LanguageServer {
             }
             setFoldingRangeProvider(true)
             completionProvider = CompletionOptions().apply {
-                triggerCharacters = listOf("*")
+                triggerCharacters = listOf("*", "@")
                 completionItem = CompletionItemOptions().apply {
                     labelDetailsSupport = true
                 }

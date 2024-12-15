@@ -16,12 +16,14 @@
 
 package cn.enaium.jimmer.dto.lsp
 
+import cn.enaium.jimmer.dto.lsp.compiler.Context
 import cn.enaium.jimmer.dto.lsp.compiler.ImmutableProp
 import cn.enaium.jimmer.dto.lsp.compiler.ImmutableType
 import org.antlr.v4.runtime.CommonTokenStream
 import org.babyfish.jimmer.dto.compiler.DtoLexer
 import org.babyfish.jimmer.dto.compiler.DtoParser.DtoContext
 import org.babyfish.jimmer.dto.compiler.DtoType
+import java.nio.file.Path
 
 /**
  * @author Enaium
@@ -31,6 +33,8 @@ data class DtoDocument(
     val ast: DtoContext,
     val lexer: DtoLexer,
     val commonToken: CommonTokenStream,
+    val context: Context,
     val immutable: ImmutableType? = null,
+    val classpath: List<Path> = emptyList(),
     val dtoTypes: List<DtoType<ImmutableType, ImmutableProp>> = emptyList()
 )
