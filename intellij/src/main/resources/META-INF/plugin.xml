@@ -8,6 +8,8 @@
     </description>
     <change-notes>
         <![CDATA[<h1>Change notes</h1>
+        <p><b>1.2.0</b></p>
+        <ul><li>Support 'export' and 'import' completion</li></ul>
         <p><b>1.1.0</b></p>
         <ul>
             <li>Support 'textDocument/foldingRange'</li>
