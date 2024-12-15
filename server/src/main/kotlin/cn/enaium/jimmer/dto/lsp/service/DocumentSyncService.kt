@@ -16,14 +16,12 @@
 
 package cn.enaium.jimmer.dto.lsp.service
 
-import cn.enaium.jimmer.dto.lsp.DocumentManager
-import cn.enaium.jimmer.dto.lsp.DtoDocument
+import cn.enaium.jimmer.dto.lsp.*
 import cn.enaium.jimmer.dto.lsp.Main.client
 import cn.enaium.jimmer.dto.lsp.compiler.Context
 import cn.enaium.jimmer.dto.lsp.compiler.DocumentDtoCompiler
 import cn.enaium.jimmer.dto.lsp.compiler.ImmutableType
 import cn.enaium.jimmer.dto.lsp.compiler.get
-import cn.enaium.jimmer.dto.lsp.findClasspath
 import org.antlr.v4.runtime.*
 import org.babyfish.jimmer.dto.compiler.*
 import org.eclipse.lsp4j.*
@@ -61,10 +59,16 @@ class DocumentSyncService(private val workspaceFolders: MutableSet<String>, docu
     }
 
     private fun validate(content: String, uri: String) {
+        val projectDir = findProjectDir(URI.create(uri).toPath())
         val classpath = mutableListOf<Path>()
-        workspaceFolders.forEach workspaceFolder@{ workspaceFolder ->
-            val path = URI.create(workspaceFolder).toPath()
-            findClasspath(path, classpath)
+
+        projectDir?.run {
+            findClasspath(this, classpath)
+        } ?: run {
+            workspaceFolders.forEach workspaceFolder@{ workspaceFolder ->
+                val path = URI.create(workspaceFolder).toPath()
+                findClasspath(path, classpath)
+            }
         }
         val context = Context(URLClassLoader(classpath.map { it.toUri().toURL() }.toTypedArray()))
         val lexer = DtoLexer(CharStreams.fromString(content))
@@ -100,13 +104,13 @@ class DocumentSyncService(private val workspaceFolders: MutableSet<String>, docu
             val documentDtoCompiler =
                 DocumentDtoCompiler(DtoFile(object : OsFile {
                     override fun getAbsolutePath(): String {
-                        return URI.create(uri).toPath().toFile().absolutePath
+                        return URI.create(uri).toFile().absolutePath
                     }
 
                     override fun openReader(): Reader {
                         return content.reader()
                     }
-                }, "", "", emptyList(), ""))
+                }, "", "", emptyList(), URI.create(uri).toFile().name))
             context.loader[documentDtoCompiler.sourceTypeName]?.run {
                 val immutableType = ImmutableType(context, this)
                 val compile = documentDtoCompiler.compile(immutableType)
@@ -124,7 +128,8 @@ class DocumentSyncService(private val workspaceFolders: MutableSet<String>, docu
                     diagnostics = listOf(Diagnostic().apply {
                         range = Range(Position(0, 0), Position(0, 1))
                         severity = DiagnosticSeverity.Error
-                        message = "No immutable type '${documentDtoCompiler.sourceTypeName}'"
+                        message =
+                            "No immutable type '${documentDtoCompiler.sourceTypeName}' found. Please build the project or use the export statement."
                     })
                 })
                 documentManager.openOrUpdateDocument(

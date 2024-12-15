@@ -20,6 +20,8 @@ import org.antlr.v4.runtime.Token
 import org.babyfish.jimmer.dto.compiler.Constants
 import org.eclipse.lsp4j.Position
 import org.eclipse.lsp4j.Range
+import java.io.File
+import java.net.URI
 import java.nio.file.Path
 import kotlin.io.path.isDirectory
 import kotlin.io.path.name
@@ -73,6 +75,23 @@ fun findClasspath(path: Path, results: MutableList<Path>) {
     }
 }
 
+fun findProjectDir(dtoPath: Path): Path? {
+    var parent = dtoPath.parent
+    while (parent != null) {
+        val main = parent
+        val src = parent.parent?.name
+        val project = parent.parent?.parent
+        if (listOf("main", "test").contains(main.name) && src == "src") {
+            return project
+        }
+        parent = parent.parent
+    }
+    return null
+}
+
+fun URI.toFile(): File {
+    return File(this)
+}
 
 fun Token.range(): Range {
     return Range(
