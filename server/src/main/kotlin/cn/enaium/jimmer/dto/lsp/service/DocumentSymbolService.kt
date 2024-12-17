@@ -27,9 +27,9 @@ import java.util.concurrent.CompletableFuture
  * @author Enaium
  */
 class DocumentSymbolService(documentManager: DocumentManager) : DocumentServiceAdapter(documentManager) {
-    override fun documentSymbol(params: DocumentSymbolParams): CompletableFuture<MutableList<Either<SymbolInformation, DocumentSymbol>>> {
+    override fun documentSymbol(params: DocumentSymbolParams): CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> {
         val document = documentManager.getDocument(params.textDocument.uri)
-            ?: return CompletableFuture.completedFuture(mutableListOf())
+            ?: return CompletableFuture.completedFuture(emptyList())
 
         fun getDocumentSymbols(
             bodyContext: DtoParser.DtoBodyContext,

@@ -30,6 +30,7 @@ class DtoTextDocumentService(workspaceFolders: MutableSet<String>) : TextDocumen
     private val documentFoldingRangeService = DocumentFoldingRangeService(documentManager)
     private val documentCompletionService = DocumentCompletionService(documentManager)
     private val documentSymbolService = DocumentSymbolService(documentManager)
+    private val documentFormattingService = DocumentFormattingService(documentManager)
 
     override fun didOpen(params: DidOpenTextDocumentParams) {
         documentSyncService.didOpen(params)
@@ -59,7 +60,11 @@ class DtoTextDocumentService(workspaceFolders: MutableSet<String>) : TextDocumen
         return documentCompletionService.completion(params)
     }
 
-    override fun documentSymbol(params: DocumentSymbolParams): CompletableFuture<MutableList<Either<SymbolInformation, DocumentSymbol>>> {
+    override fun documentSymbol(params: DocumentSymbolParams): CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> {
         return documentSymbolService.documentSymbol(params)
+    }
+
+    override fun formatting(params: DocumentFormattingParams): CompletableFuture<List<TextEdit>> {
+        return documentFormattingService.formatting(params)
     }
 }

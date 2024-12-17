@@ -111,6 +111,7 @@ fun findClassNames(classpath: List<Path>): List<String> {
                     results.add(name)
                 }
             }
+            jar.close()
         }
     }
     return results
@@ -127,8 +128,8 @@ fun Token.range(): Range {
     )
 }
 
-fun Token.position(): Position {
-    return Position(line - 1, charPositionInLine)
+fun Token.position(textLength: Boolean = false): Position {
+    return Position(line - 1, charPositionInLine.let { if (textLength) it + text.length else it })
 }
 
 fun Range.overlaps(position: Position): Boolean {

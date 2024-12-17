@@ -66,6 +66,7 @@ class DtoLanguageServer : LanguageServer {
             setDocumentSymbolProvider(DocumentSymbolOptions().apply {
                 label = "Jimmer DTO"
             })
+            setDocumentFormattingProvider(true)
         }))
     }
 
