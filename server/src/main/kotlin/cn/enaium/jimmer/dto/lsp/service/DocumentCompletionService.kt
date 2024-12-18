@@ -167,19 +167,27 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
                         DtoModifier.SPECIFICATION
                     ) == true
 
-                completionItems.addAll(listOf("allScalars", "allReferences").map { name ->
-                    CompletionItem(name).apply {
-                        kind = CompletionItemKind.Function
-                        labelDetails = CompletionItemLabelDetails().apply {
-                            description = "macro"
+                if (isInBlock) {
+                    completionItems += listOf("allScalars", "allReferences").map { name ->
+                        CompletionItem(name).apply {
+                            kind = CompletionItemKind.Function
+                            labelDetails = CompletionItemLabelDetails().apply {
+                                description = "macro"
+                            }
+                            insertText = "#$name"
+                            insertTextFormat = InsertTextFormat.Snippet
+                            sortText = "${sort++}"
                         }
-                        insertText = "#$name"
-                        insertTextFormat = InsertTextFormat.Snippet
-                        sortText = "${sort++}"
                     }
-                })
+                }
 
-                completionItems += (if (isInSpecificationBlock) qbeFuncNames else normalFuncNames).map {
+                completionItems += (if (isInSpecificationBlock) {
+                    qbeFuncNames
+                } else if (isInBlock) {
+                    normalFuncNames
+                } else {
+                    emptyList()
+                }).map {
                     CompletionItem(it).apply {
                         kind = CompletionItemKind.Method
                         labelDetails = CompletionItemLabelDetails().apply {
