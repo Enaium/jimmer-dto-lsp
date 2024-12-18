@@ -18,8 +18,6 @@ package cn.enaium.jimmer.dto.lsp.service
 
 import cn.enaium.jimmer.dto.lsp.DocumentManager
 import cn.enaium.jimmer.dto.lsp.range
-import org.antlr.v4.runtime.CharStreams
-import org.antlr.v4.runtime.CommonTokenStream
 import org.antlr.v4.runtime.Token
 import org.babyfish.jimmer.dto.compiler.DtoLexer
 import org.babyfish.jimmer.dto.compiler.DtoModifier
@@ -32,19 +30,15 @@ import java.util.concurrent.CompletableFuture
  */
 class DocumentSemanticTokensFullService(documentManager: DocumentManager) : DocumentServiceAdapter(documentManager) {
     override fun semanticTokensFull(params: SemanticTokensParams): CompletableFuture<SemanticTokens> {
-        val document = documentManager.getDocument(params.textDocument.uri) ?: return CompletableFuture.completedFuture(
-            SemanticTokens()
-        )
-        val lexer = DtoLexer(CharStreams.fromString(document.content))
-        val commonToken = CommonTokenStream(lexer)
-        commonToken.fill()
+        val document = documentManager.getDocument(params.textDocument.uri)
+            ?: return CompletableFuture.completedFuture(SemanticTokens())
         val data = mutableListOf<Int>()
         var previousLine = 0
         var previousChar = 0
-        val tokens = commonToken.tokens
+        val tokens = document.commonToken.tokens
         tokens.forEachIndexed { tokenIndex, token ->
             when (token.type) {
-                DtoLexer.DocComment -> {
+                DtoLexer.DocComment, DtoLexer.BlockComment, DtoLexer.LineComment -> {
                     token.text.split("\n").forEachIndexed { index, s ->
                         val start = token.range().start
                         val currentLine = start.line + index
@@ -62,7 +56,7 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
                 DtoLexer.T__0, DtoLexer.T__3, DtoLexer.T__4, DtoLexer.T__8, DtoLexer.T__9,
                 DtoLexer.T__10, DtoLexer.T__11, DtoLexer.T__12, DtoLexer.T__13, DtoLexer.T__18,
                 DtoLexer.T__19, DtoLexer.T__20, DtoLexer.T__21, DtoLexer.T__24, DtoLexer.T__25,
-                DtoLexer.T__34 -> {
+                DtoLexer.T__34, DtoLexer.BooleanLiteral -> {
                     val start = token.range().start
                     data.add(start.line - previousLine)
                     data.add(if (previousLine == start.line) start.character - previousChar else start.character)
@@ -80,14 +74,14 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
                         data.add(start.line - previousLine)
                         data.add(if (previousLine == start.line) start.character - previousChar else start.character)
                         data.add(token.text.length + nextToken.text.length)
-                        data.add(if (token.type == DtoLexer.T__29) 2 else 5)
+                        data.add(5)
                         data.add(0)
                         previousLine = start.line
                         previousChar = start.character
                     }
                 }
 
-                DtoLexer.StringLiteral -> {
+                DtoLexer.CharacterLiteral, DtoLexer.StringLiteral -> {
                     val start = token.range().start
                     data.add(start.line - previousLine)
                     data.add(if (previousLine == start.line) start.character - previousChar else start.character)
@@ -110,7 +104,7 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
                 }
 
                 DtoLexer.Identifier -> run {
-                    tokens.subList(tokenIndex, commonToken.size()).forEach {
+                    tokens.subList(tokenIndex, tokens.size).forEach {
                         if (tokens.getOrNull(tokenIndex - 1)?.type != DtoLexer.T__29
                             && it.type == DtoLexer.T__16
                             && (it.range().start.line == token.range().start.line || tokens.getOrNull(tokenIndex + 1)?.type == DtoLexer.T__16)
@@ -145,7 +139,7 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
                 }
             }
         }
-        return CompletableFuture.completedFuture(/* value = */ SemanticTokens(/* data = */ data))
+        return CompletableFuture.completedFuture(SemanticTokens(data))
     }
 
     private fun Token.isDtoModifier(): Boolean {

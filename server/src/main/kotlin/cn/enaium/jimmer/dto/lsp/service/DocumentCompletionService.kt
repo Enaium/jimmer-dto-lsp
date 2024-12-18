@@ -51,7 +51,7 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
                 val before3Chars = line.substring(position.character - 3, params.position.character)
                 before3Chars != "/**" && return@run
                 return CompletableFuture.completedFuture(
-                    Either.forLeft(listOf(CompletionItem("BlockComment").apply {
+                    Either.forLeft(listOf(CompletionItem("DocComment").apply {
                         insertText = "\n * $0 \n */"
                         kind = CompletionItemKind.Text
                         insertTextFormat = InsertTextFormat.Snippet
