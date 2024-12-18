@@ -62,17 +62,13 @@ class DocumentFormattingService(documentManager: DocumentManager) : DocumentServ
                 val imports = mutableListOf<Pair<String, String>>()
 
                 importStatements.forEach { importStatement ->
+                    val parts = importStatement.parts
                     if (importStatement.importedTypes.isEmpty()) {
-                        val element = importStatement.parts.joinToString(".") { it.text }
-                        imports.add(
-                            element.substring(
-                                0,
-                                element.length - 1
-                            ) to element.substring(element.lastIndexOf(".") + 1)
-                        )
+                        val importedType = parts.removeLast()
+                        imports.add(parts.joinToString(".") { it.text } to importedType.text)
                     } else {
                         importStatement.importedTypes.forEach { importedType ->
-                            imports.add(importStatement.parts.joinToString(".") { it.text } to importedType.text)
+                            imports.add(parts.joinToString(".") { it.text } to importedType.text)
                         }
                     }
                 }
