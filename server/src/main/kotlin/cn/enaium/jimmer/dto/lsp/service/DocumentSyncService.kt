@@ -22,7 +22,6 @@ import cn.enaium.jimmer.dto.lsp.Main.client
 import cn.enaium.jimmer.dto.lsp.compiler.Context
 import cn.enaium.jimmer.dto.lsp.compiler.DocumentDtoCompiler
 import cn.enaium.jimmer.dto.lsp.compiler.ImmutableType
-import cn.enaium.jimmer.dto.lsp.compiler.get
 import cn.enaium.jimmer.dto.lsp.utility.findClasspath
 import cn.enaium.jimmer.dto.lsp.utility.findProjectDir
 import cn.enaium.jimmer.dto.lsp.utility.toFile
@@ -115,7 +114,7 @@ class DocumentSyncService(private val workspaceFolders: MutableSet<String>, docu
                         return content.reader()
                     }
                 }, "", "", emptyList(), URI.create(uri).toFile().name))
-            context.loader[documentDtoCompiler.sourceTypeName]?.run {
+            context.findImmutableClass(projectDir, URI.create(uri).toPath(), documentDtoCompiler.sourceTypeName)?.run {
                 val immutableType = ImmutableType(context, this)
                 val compile = documentDtoCompiler.compile(immutableType)
                 client?.publishDiagnostics(PublishDiagnosticsParams().apply {
