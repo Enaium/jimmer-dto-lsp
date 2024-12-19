@@ -16,6 +16,7 @@
 
 package cn.enaium.jimmer.dto.lsp.service
 
+import cn.enaium.jimmer.dto.lsp.DocumentContext
 import cn.enaium.jimmer.dto.lsp.DocumentManager
 import cn.enaium.jimmer.dto.lsp.DtoDocument
 import cn.enaium.jimmer.dto.lsp.Main.client
@@ -123,7 +124,11 @@ class DocumentSyncService(private val workspaceFolders: MutableSet<String>, docu
                 })
                 documentManager.openOrUpdateDocument(
                     uri,
-                    DtoDocument(content, ast, lexer, token, context, immutableType, classpath, compile)
+                    DtoDocument(
+                        content,
+                        DocumentContext(ast, lexer, token, context, immutableType, classpath, compile),
+                        DocumentContext(ast, lexer, token, context, immutableType, classpath, compile)
+                    )
                 )
             } ?: run {
                 client?.publishDiagnostics(PublishDiagnosticsParams().apply {
@@ -140,18 +145,12 @@ class DocumentSyncService(private val workspaceFolders: MutableSet<String>, docu
                     documentManager.getDocument(uri)
                         ?.copy(
                             content = content,
-                            ast = ast,
-                            commonToken = token,
-                            context = context,
-                            classpath = classpath
+                            realTime = DocumentContext(ast, lexer, token, context, classpath = classpath),
                         )
                         ?: DtoDocument(
                             content,
-                            ast,
-                            lexer,
-                            token,
-                            context,
-                            classpath = classpath
+                            DocumentContext(ast, lexer, token, context, classpath = classpath),
+                            DocumentContext(ast, lexer, token, context, classpath = classpath)
                         )
                 )
             }
@@ -172,19 +171,12 @@ class DocumentSyncService(private val workspaceFolders: MutableSet<String>, docu
                 documentManager.getDocument(uri)
                     ?.copy(
                         content = content,
-                        ast = ast,
-                        commonToken = token,
-                        context = context,
-                        classpath = classpath
-                    )
-                    ?: DtoDocument(
-                        content,
-                        ast,
-                        lexer,
-                        token,
-                        context,
-                        classpath = classpath
-                    )
+                        realTime = DocumentContext(ast, lexer, token, context, classpath = classpath),
+                    ) ?: DtoDocument(
+                    content,
+                    DocumentContext(ast, lexer, token, context, classpath = classpath),
+                    DocumentContext(ast, lexer, token, context, classpath = classpath)
+                )
             )
         }
     }

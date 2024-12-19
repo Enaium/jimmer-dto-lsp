@@ -34,11 +34,11 @@ class DocumentFormattingService(documentManager: DocumentManager) : DocumentServ
 
         val textEdits = mutableListOf<TextEdit>()
 
-        val tokens = document.commonToken.tokens
+        val tokens = document.realTime.commonToken.tokens
 
         if (tokens.isNotEmpty()) {
-            val exportStatement = document.ast.exportStatement()
-            val importStatements = document.ast.importStatement()
+            val exportStatement = document.realTime.ast.exportStatement()
+            val importStatements = document.realTime.ast.importStatement()
             if (exportStatement != null) {
                 val start = Position()
                 var stop = Position()

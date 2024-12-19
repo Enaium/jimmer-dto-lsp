@@ -44,7 +44,7 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
 
         var previousLine = 0
         var previousChar = 0
-        val tokens = document.commonToken.tokens
+        val tokens = document.realTime.commonToken.tokens
         tokens.forEach { token ->
             when (token.type) {
                 DtoLexer.DocComment, DtoLexer.BlockComment, DtoLexer.LineComment -> {
@@ -80,7 +80,7 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
             }
         }
 
-        val ast = document.ast
+        val ast = document.realTime.ast
         ast.exportStatement()?.also { exportStatement ->
             val keyword = exportStatement.start
             if (keyword.literal() == TokenType.EXPORT.literal) {

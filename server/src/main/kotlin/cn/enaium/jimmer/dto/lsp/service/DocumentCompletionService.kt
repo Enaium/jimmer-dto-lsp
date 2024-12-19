@@ -46,7 +46,7 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
         val document = documentManager.getDocument(params.textDocument.uri)
             ?: return CompletableFuture.completedFuture(Either.forLeft(emptyList()))
 
-        val commentRange = getCommentRange(document.commonToken.tokens)
+        val commentRange = getCommentRange(document.realTime.commonToken.tokens)
 
         if (commentRange.any { it.overlaps(params.position) }) {
             return CompletableFuture.completedFuture(Either.forLeft(emptyList()))
@@ -71,7 +71,7 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
 
             "@" -> run {
                 var sort = 0
-                val annotationNames = findAnnotationNames(document.context, document.classpath)
+                val annotationNames = findAnnotationNames(document.realTime.context, document.realTime.classpath)
                 return CompletableFuture.completedFuture(
                     Either.forLeft(annotationNames.map {
                         CompletionItem(it.let {
@@ -84,8 +84,8 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
                             kind = CompletionItemKind.Class
                             sortText = "${sort++}"
                             val sortedImportStatements =
-                                document.ast.importStatements.sortedWith { o1, o2 -> o2.Identifier.line - o1.Identifier.line }
-                            val exportStatement = document.ast.exportStatement()
+                                document.realTime.ast.importStatements.sortedWith { o1, o2 -> o2.Identifier.line - o1.Identifier.line }
+                            val exportStatement = document.realTime.ast.exportStatement()
                             var importLine = if (exportStatement != null) {
                                 val exportLine =
                                     if (exportStatement.packageParts.isNotEmpty()) {
@@ -119,7 +119,9 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
 
                 val completionItems = mutableListOf<CompletionItem>()
 
-                val tokens = document.commonToken.tokens
+                val tokens =
+                    document.rightTime.commonToken.tokens.filter { it.channel == DtoLexer.DEFAULT_TOKEN_CHANNEL }
+
                 fun completionClass(keyword: String, names: List<String>) {
                     val currentLineTokens = tokens.filter { it.line - 1 == params.position.line }
                     if (currentLineTokens.size > 1 && currentLineTokens.first()?.text == keyword) {
@@ -138,19 +140,22 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
                     }
                 }
 
-                completionClass("export", findImmutableNames(document.context, document.classpath))
-                completionClass("import", findClassNames(document.classpath) + findAnnotationNames(document.context))
+                completionClass("export", findImmutableNames(document.realTime.context, document.realTime.classpath))
+                completionClass(
+                    "import",
+                    findClassNames(document.realTime.classpath) + findAnnotationNames(document.realTime.context)
+                )
 
                 val callTraceToRange = mutableMapOf<String, Pair<Token, Token>>()
                 val callTraceToProps = mutableMapOf<String, List<ImmutableProp>>()
 
-                document.ast.dtoTypes.forEach { dtoType ->
+                document.realTime.ast.dtoTypes.forEach { dtoType ->
                     if (dtoType.name == null) return@forEach
                     val bodyContext = dtoType.dtoBody() ?: return@forEach
                     getBodyRange(bodyContext, dtoType.name.text, callTraceToRange)
                 }
 
-                document.dtoTypes.forEach { dtoType ->
+                document.realTime.dtoTypes.forEach { dtoType ->
                     if (dtoType.name == null) return@forEach
                     getProps(dtoType.baseType, "${dtoType.name}", callTraceToProps)
                 }
@@ -189,7 +194,7 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
 
                 val isInBlock = current != null
                 val isInSpecificationBlock =
-                    document.dtoTypes.find { current?.key?.startsWith("${it.name}") == true }?.modifiers?.contains(
+                    document.realTime.dtoTypes.find { current?.key?.startsWith("${it.name}") == true }?.modifiers?.contains(
                         DtoModifier.SPECIFICATION
                     ) == true
 

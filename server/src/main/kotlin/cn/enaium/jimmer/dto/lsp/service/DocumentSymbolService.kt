@@ -52,7 +52,7 @@ class DocumentSymbolService(documentManager: DocumentManager) : DocumentServiceA
 
         val documentSymbols = mutableListOf<DocumentSymbol>()
 
-        document.ast.dtoTypes.forEach { dtoType ->
+        document.realTime.ast.dtoTypes.forEach { dtoType ->
             if (dtoType.name == null) return@forEach
             documentSymbols.add(DocumentSymbol().apply {
                 name = dtoType.name.text

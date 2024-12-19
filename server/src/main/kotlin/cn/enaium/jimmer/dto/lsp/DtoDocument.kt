@@ -30,6 +30,11 @@ import java.nio.file.Path
  */
 data class DtoDocument(
     val content: String,
+    val realTime: DocumentContext,
+    val rightTime: DocumentContext
+)
+
+data class DocumentContext(
     val ast: DtoContext,
     val lexer: DtoLexer,
     val commonToken: CommonTokenStream,

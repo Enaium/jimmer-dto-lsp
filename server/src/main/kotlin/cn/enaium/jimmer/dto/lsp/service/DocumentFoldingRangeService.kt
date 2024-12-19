@@ -30,7 +30,7 @@ class DocumentFoldingRangeService(documentManager: DocumentManager) : DocumentSe
         val ranges = mutableListOf<FoldingRange>()
         val document =
             documentManager.getDocument(params.textDocument.uri) ?: return CompletableFuture.completedFuture(ranges)
-        return CompletableFuture.completedFuture(getBodyRange(document.commonToken.tokens).map {
+        return CompletableFuture.completedFuture(getBodyRange(document.realTime.commonToken.tokens).map {
             FoldingRange(it.start.line, it.end.line - 1).apply {
                 kind = FoldingRangeKind.Region
             }
