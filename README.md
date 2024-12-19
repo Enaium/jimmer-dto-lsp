@@ -9,6 +9,7 @@
 - Automatic completion for prop, macro, function, keyword, comment etc.
 - Folding
 - Structure view
+- Format export and import
 
 ## Screenshots
 
@@ -25,6 +26,8 @@
 ![structure](https://s2.loli.net/2024/12/13/rjh9IMgSbdJ2o4n.gif)
 
 ![import annotation](https://s2.loli.net/2024/12/15/W6fSpoEUZXmguK8.gif)
+
+![formatting export and import](https://s2.loli.net/2024/12/19/45Ja3uSgzhyCjYp.gif)
 
 ## Supported IDEs
 
