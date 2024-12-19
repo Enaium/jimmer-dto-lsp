@@ -34,32 +34,33 @@ import java.util.concurrent.CompletableFuture
  */
 class DocumentSemanticTokensFullService(documentManager: DocumentManager) : DocumentServiceAdapter(documentManager) {
 
-    private val tokenToType = mutableMapOf<Token, SemanticType>()
+    private val tokenToType = mutableListOf<Pair<Token, SemanticType>>()
 
     override fun semanticTokensFull(params: SemanticTokensParams): CompletableFuture<SemanticTokens> {
         val document = documentManager.getDocument(params.textDocument.uri)
             ?: return CompletableFuture.completedFuture(SemanticTokens())
         val data = mutableListOf<Int>()
         tokenToType.clear()
+
         var previousLine = 0
         var previousChar = 0
         val tokens = document.commonToken.tokens
         tokens.forEach { token ->
             when (token.type) {
                 DtoLexer.DocComment, DtoLexer.BlockComment, DtoLexer.LineComment -> {
-                    tokenToType[token] = SemanticType.COMMENT
+                    addToken(token, SemanticType.COMMENT)
                 }
 
                 DtoLexer.CharacterLiteral, DtoLexer.StringLiteral -> {
-                    tokenToType[token] = SemanticType.STRING
+                    addToken(token, SemanticType.STRING)
                 }
 
                 DtoLexer.IntegerLiteral, DtoLexer.FloatingPointLiteral -> {
-                    tokenToType[token] = SemanticType.NUMBER
+                    addToken(token, SemanticType.NUMBER)
                 }
 
                 TokenType.PACKAGE.id, TokenType.IMPLEMENTS.id, TokenType.AS.id -> {
-                    tokenToType[token] = SemanticType.KEYWORD
+                    addToken(token, SemanticType.KEYWORD)
                 }
             }
         }
@@ -83,32 +84,32 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
         ast.exportStatement()?.also { exportStatement ->
             val keyword = exportStatement.start
             if (keyword.literal() == TokenType.EXPORT.literal) {
-                tokenToType[keyword] = SemanticType.KEYWORD
+                addToken(keyword, SemanticType.KEYWORD)
             }
             mutableListOf(exportStatement.typeParts).removeLast().forEach { part ->
-                tokenToType[part] = SemanticType.NAMESPACE
+                addToken(part, SemanticType.NAMESPACE)
             }
-            tokenToType[exportStatement.typeParts.last()] = SemanticType.TYPE
+            addToken(exportStatement.typeParts.last(), SemanticType.TYPE)
             exportStatement.packageParts.forEach { part ->
-                tokenToType[part] = SemanticType.NAMESPACE
+                addToken(part, SemanticType.NAMESPACE)
             }
         }
         ast.importStatement().forEach { importStatement ->
             val keyword = importStatement.start
             if (keyword.literal() == TokenType.IMPORT.literal) {
-                tokenToType[keyword] = SemanticType.KEYWORD
+                addToken(keyword, SemanticType.KEYWORD)
             }
             if (importStatement.importedTypes.isEmpty()) {
                 mutableListOf(importStatement.parts).removeLast().forEach { part ->
-                    tokenToType[part] = SemanticType.NAMESPACE
+                    addToken(part, SemanticType.NAMESPACE)
                 }
-                tokenToType[importStatement.parts.last()] = SemanticType.TYPE
+                addToken(importStatement.parts.last(), SemanticType.TYPE)
             } else {
                 importStatement.parts.forEach { part ->
-                    tokenToType[part] = SemanticType.NAMESPACE
+                    addToken(part, SemanticType.NAMESPACE)
                 }
                 importStatement.importedTypes.forEach { importedType ->
-                    tokenToType[importedType.name] = SemanticType.TYPE
+                    addToken(importedType.name, SemanticType.TYPE)
                 }
             }
         }
@@ -116,20 +117,28 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
         ast.dtoTypes.forEach { dtoType ->
             annotations(dtoType.annotations)
             dtoType.modifiers.forEach { modifier ->
-                tokenToType[modifier] = SemanticType.KEYWORD
+                addToken(modifier, SemanticType.KEYWORD)
             }
-            tokenToType[dtoType.name] = SemanticType.STRUCT
+            addToken(dtoType.name, SemanticType.STRUCT)
             dtoType.superInterfaces.forEach { superInterface ->
                 typeRef(superInterface)
             }
-            body(dtoType.dtoBody())
+            dtoType.dtoBody()?.also { dtoBody ->
+                body(dtoBody)
+            }
         }
 
-        tokenToType.toSortedMap(compareBy { it.tokenIndex }).forEach { (token, semanticType) ->
+        tokenToType.sortedBy { it.first.tokenIndex }.forEach { (token, semanticType) ->
             addData(token, semanticType)
         }
 
         return CompletableFuture.completedFuture(SemanticTokens(data))
+    }
+
+    private fun addToken(token: Token?, semanticType: SemanticType) {
+        token?.also {
+            tokenToType.add(it to semanticType)
+        }
     }
 
     private fun annotationArrayValue(annotationArrayValue: DtoParser.AnnotationArrayValueContext) {
@@ -141,21 +150,21 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
     private fun annotationSingleValue(annotationSingleValue: DtoParser.AnnotationSingleValueContext) {
         annotationSingleValue.nestedAnnotation()?.also { nestedAnnotation ->
             nestedAnnotation.qualifiedName()?.parts?.forEach { part ->
-                tokenToType[part] = SemanticType.DECORATOR
+                addToken(part, SemanticType.DECORATOR)
             }
             nestedAnnotation.annotationArguments()?.also { annotationArguments(it) }
         }
         annotationSingleValue.qualifiedName()?.parts?.forEach { part ->
-            tokenToType[part] = SemanticType.TYPE
+            addToken(part, SemanticType.TYPE)
         }
         annotationSingleValue.classSuffix()?.also { classSuffix ->
-            tokenToType[classSuffix.stop] = SemanticType.KEYWORD
+            addToken(classSuffix.stop, SemanticType.KEYWORD)
         }
     }
 
     private fun annotationArguments(annotationArguments: DtoParser.AnnotationArgumentsContext) {
         annotationArguments.namedArguments?.forEach { namedArgument ->
-            tokenToType[namedArgument.name] = SemanticType.PARAMETER
+            addToken(namedArgument.name, SemanticType.PARAMETER)
             namedArgument.annotationValue()?.also { annotationValue ->
                 annotationValue.annotationArrayValue()?.also { annotationArrayValue ->
                     annotationArrayValue(annotationArrayValue)
@@ -179,9 +188,9 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
 
     private fun annotations(annotations: List<AnnotationContext>) {
         annotations.forEach { annotation ->
-            tokenToType[annotation.start] = SemanticType.DECORATOR
+            addToken(annotation.start, SemanticType.DECORATOR)
             annotation.qualifiedName().parts.forEach { part ->
-                tokenToType[part] = SemanticType.DECORATOR
+                addToken(part, SemanticType.DECORATOR)
             }
             annotation.annotationArguments()?.also {
                 annotationArguments(it)
@@ -191,82 +200,62 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
 
     private fun typeRef(typeRef: DtoParser.TypeRefContext) {
         typeRef.optional?.also { optional ->
-            tokenToType[optional] = SemanticType.KEYWORD
+            addToken(optional, SemanticType.KEYWORD)
         }
         typeRef.qualifiedName().parts.forEach { part ->
-            tokenToType[part] = SemanticType.TYPE_PARAMETER
+            addToken(part, SemanticType.TYPE_PARAMETER)
         }
         typeRef.genericArguments.forEach { genericArgument ->
             genericArgument.typeRef()?.also { typeRef(it) }
         }
         typeRef.genericArgument?.also { genericArgument ->
             genericArgument.wildcard?.also { wildcard ->
-                tokenToType[wildcard] = SemanticType.KEYWORD
+                addToken(wildcard, SemanticType.KEYWORD)
             }
             genericArgument.modifier?.also { modifier ->
-                tokenToType[modifier] = SemanticType.KEYWORD
+                addToken(modifier, SemanticType.KEYWORD)
             }
         }
     }
 
     private fun macro(macro: DtoParser.MicroContext) {
-        tokenToType[macro.start] = SemanticType.MACRO
-        tokenToType[macro.name] = SemanticType.MACRO
+        addToken(macro.start, SemanticType.MACRO)
+        addToken(macro.name, SemanticType.MACRO)
         macro.optional?.also { optional ->
-            tokenToType[optional] = SemanticType.KEYWORD
+            addToken(optional, SemanticType.KEYWORD)
         }
         macro.required?.also { required ->
-            tokenToType[required] = SemanticType.KEYWORD
+            addToken(required, SemanticType.KEYWORD)
         }
         macro.qualifiedName()?.forEach {
             it.parts.forEach { part ->
-                tokenToType[part] = SemanticType.PARAMETER
+                addToken(part, SemanticType.PARAMETER)
             }
         }
     }
 
     private fun positiveProp(positiveProp: DtoParser.PositivePropContext) {
         positiveProp.props.forEach {
-            tokenToType[it] = SemanticType.PROPERTY
+            addToken(it, SemanticType.PROPERTY)
         }
         annotations(positiveProp.annotations)
         annotations(positiveProp.bodyAnnotations)
-        positiveProp.modifier?.also { modifier ->
-            tokenToType[modifier] = SemanticType.KEYWORD
-        }
-        positiveProp.optional?.also { optional ->
-            tokenToType[optional] = SemanticType.KEYWORD
-        }
-        positiveProp.required?.also { required ->
-            tokenToType[required] = SemanticType.KEYWORD
-        }
-        positiveProp.recursive?.also { recursive ->
-            tokenToType[recursive] = SemanticType.KEYWORD
-        }
-        positiveProp.func?.also { func ->
-            tokenToType[func] = SemanticType.FUNCTION
-        }
-        positiveProp.flag?.also { flag ->
-            tokenToType[flag] = SemanticType.KEYWORD
-        }
-        positiveProp.insensitive?.also { insensitive ->
-            tokenToType[insensitive] = SemanticType.FUNCTION
-        }
-        positiveProp.prefix?.also { prefix ->
-            tokenToType[prefix] = SemanticType.FUNCTION
-        }
-        positiveProp.suffix?.also { suffix ->
-            tokenToType[suffix] = SemanticType.FUNCTION
-        }
-        positiveProp.alias?.also { alias ->
-            tokenToType[alias] = SemanticType.VARIABLE
-        }
+        addToken(positiveProp.modifier, SemanticType.TYPE)
+        addToken(positiveProp.optional, SemanticType.TYPE)
+        addToken(positiveProp.required, SemanticType.TYPE)
+        addToken(positiveProp.recursive, SemanticType.TYPE)
+        addToken(positiveProp.func, SemanticType.TYPE)
+        addToken(positiveProp.flag, SemanticType.TYPE)
+        addToken(positiveProp.insensitive, SemanticType.TYPE)
+        addToken(positiveProp.prefix, SemanticType.TYPE)
+        addToken(positiveProp.suffix, SemanticType.TYPE)
+        addToken(positiveProp.alias, SemanticType.TYPE)
         positiveProp.bodySuperInterfaces.forEach { superInterface ->
             typeRef(superInterface)
         }
         positiveProp.enumBody()?.also { enumBody ->
             enumBody.enumMapping()?.forEach { enumMapping ->
-                tokenToType[enumMapping.constant] = SemanticType.ENUM_MEMBER
+                addToken(enumMapping.constant, SemanticType.ENUM_MEMBER)
             }
         }
         positiveProp.dtoBody()?.also { dtoBody ->
@@ -283,10 +272,10 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
                 positiveProp(positiveProp)
             }
             prop.negativeProp()?.also { negativeProp ->
-                tokenToType[negativeProp.start] = SemanticType.KEYWORD
+                addToken(negativeProp.start, SemanticType.KEYWORD)
             }
             prop.userProp()?.also {
-                tokenToType[it.prop] = SemanticType.PROPERTY
+                addToken(it.prop, SemanticType.PROPERTY)
                 annotations(it.annotations)
                 it.typeRef()?.also { typeRef ->
                     typeRef(typeRef)
@@ -294,21 +283,11 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
             }
             prop.aliasGroup()?.also { aliasGroup ->
                 aliasGroup.pattern?.also { pattern ->
-                    pattern.prefix?.also { prefix ->
-                        tokenToType[prefix] = SemanticType.KEYWORD
-                    }
-                    pattern.suffix?.also { suffix ->
-                        tokenToType[suffix] = SemanticType.KEYWORD
-                    }
-                    pattern.original?.also { original ->
-                        tokenToType[original] = SemanticType.VARIABLE
-                    }
-                    pattern.replacement?.also { replacement ->
-                        tokenToType[replacement] = SemanticType.VARIABLE
-                    }
-                    pattern.translator?.also { translator ->
-                        tokenToType[translator] = SemanticType.FUNCTION
-                    }
+                    addToken(pattern.prefix, SemanticType.KEYWORD)
+                    addToken(pattern.suffix, SemanticType.KEYWORD)
+                    addToken(pattern.original, SemanticType.VARIABLE)
+                    addToken(pattern.replacement, SemanticType.VARIABLE)
+                    addToken(pattern.translator, SemanticType.FUNCTION)
                 }
                 aliasGroup.props.forEach { alias ->
                     alias.micro()?.also { micro ->
