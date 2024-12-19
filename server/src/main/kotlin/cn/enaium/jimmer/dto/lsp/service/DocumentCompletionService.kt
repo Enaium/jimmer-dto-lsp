@@ -235,11 +235,11 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
                     }
                 }
 
-                completionItems += if (isInBlock) {
-                    listOf("as", "implements", "class")
-                } else {
-                    DtoModifier.entries.map { it.name.lowercase() } + listOf("import")
-                }.map {
+                completionItems += (listOf(
+                    "as",
+                    "implements",
+                    "class"
+                ) + DtoModifier.entries.map { it.name.lowercase() }).map {
                     CompletionItem(it).apply {
                         kind = CompletionItemKind.Keyword
                         sortText = "${sort++}"
