@@ -134,7 +134,13 @@ fun Token.position(textLength: Boolean = false): Position {
 }
 
 fun Range.overlaps(position: Position): Boolean {
-    return start.line < position.line && end.line > position.line
+    return if (start.line == position.line) {
+        start.character <= position.character
+    } else if (end.line == position.line) {
+        end.character >= position.character
+    } else {
+        start.line <= position.line && end.line >= position.line
+    }
 }
 
 fun Token.literal(): String? {

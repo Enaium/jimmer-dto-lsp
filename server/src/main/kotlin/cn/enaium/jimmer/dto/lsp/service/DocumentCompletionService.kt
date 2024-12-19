@@ -25,6 +25,7 @@ import cn.enaium.jimmer.dto.lsp.compiler.get
 import cn.enaium.jimmer.dto.lsp.utility.*
 import org.antlr.v4.runtime.Token
 import org.babyfish.jimmer.Immutable
+import org.babyfish.jimmer.dto.compiler.DtoLexer
 import org.babyfish.jimmer.dto.compiler.DtoModifier
 import org.babyfish.jimmer.dto.compiler.DtoParser
 import org.babyfish.jimmer.sql.Embeddable
@@ -44,6 +45,13 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
     override fun completion(params: CompletionParams): CompletableFuture<Either<List<CompletionItem>, CompletionList>> {
         val document = documentManager.getDocument(params.textDocument.uri)
             ?: return CompletableFuture.completedFuture(Either.forLeft(emptyList()))
+
+        val commentRange = getCommentRange(document.commonToken.tokens)
+
+        if (commentRange.any { it.overlaps(params.position) }) {
+            return CompletableFuture.completedFuture(Either.forLeft(emptyList()))
+        }
+
         val triggerChar = params.context?.triggerCharacter
         when (triggerChar) {
             "*" -> run {
@@ -157,7 +165,23 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
                 }.firstOrNull()?.let {
                     callTraceToProps[it.key]?.run {
                         completionItems += map { prop ->
-                            prop.completeItem(prop.name, sort++)
+                            CompletionItem(prop.name).apply {
+                                kind = CompletionItemKind.Field
+                                val type = prop.type()
+                                labelDetails = CompletionItemLabelDetails().apply {
+                                    description = "from ${prop.declaringType.name} is ${type.description}"
+                                }
+
+                                getParenthesisRange(tokens, params.position) ?: run {
+                                    if (type == PropType.ASSOCIATION) {
+                                        insertText = "${prop.name} { \n\t$0\n}"
+                                        insertTextFormat = InsertTextFormat.Snippet
+                                    } else if (type == PropType.RECURSIVE) {
+                                        insertText = "${prop.name}*"
+                                    }
+                                }
+                                sortText = "$sort"
+                            }
                         }
                     }
                     it
@@ -195,7 +219,12 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
                         labelDetails = CompletionItemLabelDetails().apply {
                             description = "function"
                         }
-                        insertText = "$it($0)"
+                        insertText = "$it($1)"
+
+                        if (it == "id") {
+                            insertText += " as $0"
+                        }
+
                         insertTextFormat = InsertTextFormat.Snippet
                         sortText = "${sort++}"
                     }
@@ -256,25 +285,6 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
             PropType.NULLABLE
         } else {
             PropType.PROPERTY
-        }
-    }
-
-    private fun ImmutableProp.completeItem(name: String, sort: Int): CompletionItem {
-        return CompletionItem(name).apply {
-            kind = CompletionItemKind.Field
-            val type = type()
-            labelDetails = CompletionItemLabelDetails().apply {
-                description = "from ${declaringType.name} is ${type.description}"
-            }
-
-            if (type == PropType.ASSOCIATION) {
-                insertText = "$name { \n\t$0\n}"
-                insertTextFormat = InsertTextFormat.Snippet
-            } else if (type == PropType.RECURSIVE) {
-                insertText = "$name*"
-            }
-
-            sortText = "$sort"
         }
     }
 
@@ -342,5 +352,41 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
             }
         }
         return results
+    }
+
+    private fun getCommentRange(tokens: List<Token>): List<Range> {
+        val ranges = mutableListOf<Range>()
+        tokens.forEach { token ->
+            when (token.type) {
+                DtoLexer.DocComment, DtoLexer.BlockComment, DtoLexer.LineComment -> {
+                    ranges.add(token.range())
+                }
+            }
+        }
+        return ranges
+    }
+
+    private fun getParenthesisRange(tokens: List<Token>, position: Position): Range? {
+        val token = tokens.find { it.line - 1 == position.line && it.charPositionInLine == position.character }
+        if (token == null) {
+            return null
+        }
+        return when (token.type) {
+            TokenType.LEFT_PARENTHESIS.id -> {
+                val rightParenthesis = tokens.find {
+                    it.line == token.line && it.charPositionInLine > token.charPositionInLine
+                } ?: return null
+                Range(token.position(), rightParenthesis.position())
+            }
+
+            TokenType.RIGHT_PARENTHESIS.id -> {
+                val leftParenthesis = tokens.find {
+                    it.line == token.line && it.charPositionInLine < token.charPositionInLine
+                } ?: return null
+                Range(leftParenthesis.position(), token.position())
+            }
+
+            else -> null
+        }
     }
 }
