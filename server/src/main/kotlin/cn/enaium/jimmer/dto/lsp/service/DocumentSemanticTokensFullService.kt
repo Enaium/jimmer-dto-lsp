@@ -240,16 +240,16 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
         }
         annotations(positiveProp.annotations)
         annotations(positiveProp.bodyAnnotations)
-        addToken(positiveProp.modifier, SemanticType.TYPE)
-        addToken(positiveProp.optional, SemanticType.TYPE)
-        addToken(positiveProp.required, SemanticType.TYPE)
-        addToken(positiveProp.recursive, SemanticType.TYPE)
-        addToken(positiveProp.func, SemanticType.TYPE)
-        addToken(positiveProp.flag, SemanticType.TYPE)
-        addToken(positiveProp.insensitive, SemanticType.TYPE)
-        addToken(positiveProp.prefix, SemanticType.TYPE)
-        addToken(positiveProp.suffix, SemanticType.TYPE)
-        addToken(positiveProp.alias, SemanticType.TYPE)
+        addToken(positiveProp.modifier, SemanticType.KEYWORD)
+        addToken(positiveProp.optional, SemanticType.KEYWORD)
+        addToken(positiveProp.required, SemanticType.KEYWORD)
+        addToken(positiveProp.recursive, SemanticType.KEYWORD)
+        addToken(positiveProp.func, SemanticType.FUNCTION)
+        addToken(positiveProp.flag, SemanticType.KEYWORD)
+        addToken(positiveProp.insensitive, SemanticType.FUNCTION)
+        addToken(positiveProp.prefix, SemanticType.FUNCTION)
+        addToken(positiveProp.suffix, SemanticType.FUNCTION)
+        addToken(positiveProp.alias, SemanticType.VARIABLE)
         positiveProp.bodySuperInterfaces.forEach { superInterface ->
             typeRef(superInterface)
         }
@@ -273,6 +273,7 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
             }
             prop.negativeProp()?.also { negativeProp ->
                 addToken(negativeProp.start, SemanticType.KEYWORD)
+                addToken(negativeProp.prop, SemanticType.PROPERTY)
             }
             prop.userProp()?.also {
                 addToken(it.prop, SemanticType.PROPERTY)
