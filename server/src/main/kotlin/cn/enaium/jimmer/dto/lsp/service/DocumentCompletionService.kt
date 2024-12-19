@@ -149,13 +149,13 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
                 val callTraceToRange = mutableMapOf<String, Pair<Token, Token>>()
                 val callTraceToProps = mutableMapOf<String, List<ImmutableProp>>()
 
-                document.realTime.ast.dtoTypes.forEach { dtoType ->
+                document.rightTime.ast.dtoTypes.forEach { dtoType ->
                     if (dtoType.name == null) return@forEach
                     val bodyContext = dtoType.dtoBody() ?: return@forEach
                     getBodyRange(bodyContext, dtoType.name.text, callTraceToRange)
                 }
 
-                document.realTime.dtoTypes.forEach { dtoType ->
+                document.rightTime.dtoTypes.forEach { dtoType ->
                     if (dtoType.name == null) return@forEach
                     getProps(dtoType.baseType, "${dtoType.name}", callTraceToProps)
                 }
@@ -194,7 +194,7 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
 
                 val isInBlock = current != null
                 val isInSpecificationBlock =
-                    document.realTime.dtoTypes.find { current?.key?.startsWith("${it.name}") == true }?.modifiers?.contains(
+                    document.rightTime.dtoTypes.find { current?.key?.startsWith("${it.name}") == true }?.modifiers?.contains(
                         DtoModifier.SPECIFICATION
                     ) == true
 
@@ -224,10 +224,17 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
                         labelDetails = CompletionItemLabelDetails().apply {
                             description = "function"
                         }
-                        insertText = "$it($1)"
 
-                        if (it == "id") {
-                            insertText += " as $0"
+                        insertText = when (it) {
+                            "id" -> {
+                                "$it($1) as $0"
+                            }
+                            "flat" -> {
+                                "$it($1) { \n\t$0\n}"
+                            }
+                            else -> {
+                                "$it($0)"
+                            }
                         }
 
                         insertTextFormat = InsertTextFormat.Snippet
