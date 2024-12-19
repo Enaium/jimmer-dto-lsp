@@ -17,7 +17,7 @@
 package cn.enaium.jimmer.dto.lsp.service
 
 import cn.enaium.jimmer.dto.lsp.DocumentManager
-import cn.enaium.jimmer.dto.lsp.position
+import cn.enaium.jimmer.dto.lsp.utility.position
 import org.babyfish.jimmer.dto.compiler.DtoParser
 import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either

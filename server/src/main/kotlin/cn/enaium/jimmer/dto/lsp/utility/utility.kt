@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package cn.enaium.jimmer.dto.lsp
+package cn.enaium.jimmer.dto.lsp.utility
 
 import org.antlr.v4.runtime.Token
 import org.babyfish.jimmer.dto.compiler.Constants
+import org.babyfish.jimmer.dto.compiler.DtoLexer
 import org.eclipse.lsp4j.Position
 import org.eclipse.lsp4j.Range
 import java.io.File
@@ -134,6 +135,10 @@ fun Token.position(textLength: Boolean = false): Position {
 
 fun Range.overlaps(position: Position): Boolean {
     return start.line < position.line && end.line > position.line
+}
+
+fun Token.literal(): String? {
+    return DtoLexer.VOCABULARY.getLiteralName(this.type)
 }
 
 val commonFuncNames = setOf("flat")

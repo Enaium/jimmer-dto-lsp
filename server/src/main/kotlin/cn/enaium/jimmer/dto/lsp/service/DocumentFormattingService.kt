@@ -17,7 +17,7 @@
 package cn.enaium.jimmer.dto.lsp.service
 
 import cn.enaium.jimmer.dto.lsp.DocumentManager
-import cn.enaium.jimmer.dto.lsp.position
+import cn.enaium.jimmer.dto.lsp.utility.position
 import org.eclipse.lsp4j.DocumentFormattingParams
 import org.eclipse.lsp4j.Position
 import org.eclipse.lsp4j.Range

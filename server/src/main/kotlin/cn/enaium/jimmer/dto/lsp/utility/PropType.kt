@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package cn.enaium.jimmer.dto.lsp
+package cn.enaium.jimmer.dto.lsp.utility
 
 /**
  * @author Enaium

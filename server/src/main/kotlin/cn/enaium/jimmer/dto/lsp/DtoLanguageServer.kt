@@ -17,6 +17,7 @@
 package cn.enaium.jimmer.dto.lsp
 
 import cn.enaium.jimmer.dto.lsp.Main.logger
+import cn.enaium.jimmer.dto.lsp.utility.SemanticType
 import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.services.LanguageServer
 import org.eclipse.lsp4j.services.TextDocumentService
@@ -52,7 +53,7 @@ class DtoLanguageServer : LanguageServer {
             })
             semanticTokensProvider = SemanticTokensWithRegistrationOptions().apply {
                 legend = SemanticTokensLegend().apply {
-                    tokenTypes = listOf("comment", "keyword", "function", "string", "number", "decorator")
+                    tokenTypes = SemanticType.entries.map { it.type }
                 }
                 setFull(true)
             }

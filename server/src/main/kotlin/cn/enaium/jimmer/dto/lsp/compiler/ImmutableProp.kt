@@ -16,7 +16,6 @@
 
 package cn.enaium.jimmer.dto.lsp.compiler
 
-import cn.enaium.jimmer.dto.lsp.Main.logger
 import org.babyfish.jimmer.Formula
 import org.babyfish.jimmer.Immutable
 import org.babyfish.jimmer.dto.compiler.spi.BaseProp
