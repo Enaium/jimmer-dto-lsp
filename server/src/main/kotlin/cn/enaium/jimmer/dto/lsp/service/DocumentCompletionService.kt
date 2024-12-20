@@ -119,11 +119,13 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
 
                 val completionItems = mutableListOf<CompletionItem>()
 
-                val tokens =
+                val rightTimeTokens =
                     document.rightTime.commonToken.tokens.filter { it.channel == DtoLexer.DEFAULT_TOKEN_CHANNEL }
+                val realTimeTokens =
+                    document.realTime.commonToken.tokens.filter { it.channel == DtoLexer.DEFAULT_TOKEN_CHANNEL }
 
                 fun completionClass(keyword: String, names: List<String>) {
-                    val currentLineTokens = tokens.filter { it.line - 1 == params.position.line }
+                    val currentLineTokens = rightTimeTokens.filter { it.line - 1 == params.position.line }
                     if (currentLineTokens.size > 1 && currentLineTokens.first()?.text == keyword) {
                         val classTokens =
                             currentLineTokens.filterIndexed { index, _ -> index != 0 }
@@ -177,7 +179,7 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
                                     description = "from ${prop.declaringType.name} is ${type.description}"
                                 }
 
-                                getParenthesisRange(tokens, params.position) ?: run {
+                                getParenthesisRange(realTimeTokens, params.position) ?: run {
                                     if (type == PropType.ASSOCIATION) {
                                         insertText = "${prop.name} { \n\t$0\n}"
                                         insertTextFormat = InsertTextFormat.Snippet
@@ -185,7 +187,7 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
                                         insertText = "${prop.name}*"
                                     }
                                 }
-                                sortText = "$sort"
+                                sortText = "${sort++}"
                             }
                         }
                     }
@@ -229,9 +231,11 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
                             "id" -> {
                                 "$it($1) as $0"
                             }
+
                             "flat" -> {
                                 "$it($1) { \n\t$0\n}"
                             }
+
                             else -> {
                                 "$it($0)"
                             }
@@ -254,14 +258,14 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
                 }
 
                 if (!isInBlock) {
-                    if (tokens.none { it.text == "export" }) {
+                    if (rightTimeTokens.none { it.text == "export" }) {
                         completionItems.add(CompletionItem("export").apply {
                             kind = CompletionItemKind.Keyword
                             sortText = "${sort++}"
                         })
                     }
 
-                    if (tokens.none { it.text == "package" }) {
+                    if (rightTimeTokens.none { it.text == "package" }) {
                         completionItems.add(CompletionItem("package").apply {
                             kind = CompletionItemKind.Keyword
                             sortText = "${sort++}"
