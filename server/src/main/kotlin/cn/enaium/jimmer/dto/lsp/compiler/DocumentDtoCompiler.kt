@@ -16,6 +16,7 @@
 
 package cn.enaium.jimmer.dto.lsp.compiler
 
+import cn.enaium.jimmer.dto.lsp.Main.logger
 import org.babyfish.jimmer.dto.compiler.DtoCompiler
 import org.babyfish.jimmer.dto.compiler.DtoFile
 
@@ -45,8 +46,7 @@ class DocumentDtoCompiler(dtoFile: DtoFile) : DtoCompiler<ImmutableType, Immutab
         baseProp.isStringProp
 
     override fun isSameType(baseProp1: ImmutableProp, baseProp2: ImmutableProp): Boolean =
-        baseProp1.targetType != null && baseProp2.targetType != null &&
-                baseProp1.targetType!!.name == baseProp2.targetType!!.name
+        baseProp1.declaringType.qualifiedName == baseProp2.declaringType.qualifiedName
 
     override fun getGenericTypeCount(qualifiedName: String): Int =
         baseType.klass.typeParameters.size
