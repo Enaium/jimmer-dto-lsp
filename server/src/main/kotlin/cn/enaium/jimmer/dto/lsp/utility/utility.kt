@@ -16,6 +16,8 @@
 
 package cn.enaium.jimmer.dto.lsp.utility
 
+import cn.enaium.jimmer.dto.lsp.Main
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.antlr.v4.runtime.Token
 import org.babyfish.jimmer.dto.compiler.Constants
 import org.babyfish.jimmer.dto.compiler.DtoLexer
@@ -74,6 +76,28 @@ fun findClasspath(path: Path, results: MutableList<Path>) {
             results.add(file)
         }
     }
+}
+
+fun findDependencies(project: Path): MutableList<Path> {
+    val results = mutableListOf<Path>()
+    val lspHome = Main::class.java.protectionDomain.codeSource.location.toURI().toPath().parent
+    lspHome.resolve("dependencies.json").takeIf { it.exists() }?.also {
+        val dependenciesJson = ObjectMapper().readTree(it.toFile())
+        dependenciesJson[project.absolutePathString().let { projectPath ->
+            if (projectPath.first() != '/') {
+                projectPath.first().uppercase() + projectPath.substring(1)
+            } else {
+                projectPath
+            }
+        }]?.forEach { dependency ->
+            Path(dependency.asText()).also { path ->
+                if (path.exists()) {
+                    results.add(path)
+                }
+            }
+        }
+    }
+    return results
 }
 
 fun findProjectDir(dtoPath: Path): Path? {

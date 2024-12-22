@@ -24,6 +24,7 @@ import cn.enaium.jimmer.dto.lsp.compiler.Context
 import cn.enaium.jimmer.dto.lsp.compiler.DocumentDtoCompiler
 import cn.enaium.jimmer.dto.lsp.compiler.ImmutableType
 import cn.enaium.jimmer.dto.lsp.utility.findClasspath
+import cn.enaium.jimmer.dto.lsp.utility.findDependencies
 import cn.enaium.jimmer.dto.lsp.utility.findProjectDir
 import cn.enaium.jimmer.dto.lsp.utility.toFile
 import org.antlr.v4.runtime.*
@@ -66,12 +67,14 @@ class DocumentSyncService(private val workspaceFolders: MutableSet<String>, docu
         val projectDir = findProjectDir(URI.create(uri).toPath())
         val classpath = mutableListOf<Path>()
 
-        projectDir?.run {
-            findClasspath(this, classpath)
+        projectDir?.also {
+            findClasspath(it, classpath)
+            classpath += findDependencies(it)
         } ?: run {
             workspaceFolders.forEach workspaceFolder@{ workspaceFolder ->
                 val path = URI.create(workspaceFolder).toPath()
                 findClasspath(path, classpath)
+                classpath += findDependencies(path)
             }
         }
         val context = Context(URLClassLoader(classpath.map { it.toUri().toURL() }.toTypedArray()))

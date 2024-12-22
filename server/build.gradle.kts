@@ -16,7 +16,7 @@ dependencies {
     implementation(libs.jimmer.coreKotlin)
     implementation(libs.jimmer.sql)
     implementation(libs.jimmer.sqlKotlin)
-    implementation(libs.jakarta.validation)
+    implementation(libs.jackson)
 
     testImplementation(kotlin("test"))
     implementation(kotlin("reflect"))
@@ -32,5 +32,26 @@ tasks.shadowJar {
 
 tasks.jar {
     archiveBaseName = archiveName
+    dependsOn(tasks.shadowJar)
+}
+
+tasks.register<Exec>("runVSCode") {
+    workingDir = rootProject.rootDir
+    commandLine(
+        "powershell",
+        "scripts/vscode.ps1",
+        tasks.shadowJar.get().archiveFile.get().asFile.absolutePath,
+        version
+    )
+    dependsOn(tasks.shadowJar)
+}
+
+tasks.register<Exec>("embed") {
+    workingDir = rootProject.rootDir
+    commandLine(
+        "powershell",
+        "scripts/embed.ps1",
+        tasks.shadowJar.get().archiveFile.get().asFile.absolutePath
+    )
     dependsOn(tasks.shadowJar)
 }

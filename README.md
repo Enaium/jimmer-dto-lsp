@@ -45,7 +45,8 @@
 - [Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=enaium.jimmer-dto-lsp-vscode): Install the
   extension from the marketplace
 - [IntelliJ IDEA](https://plugins.jetbrains.com/plugin/26045-jimmer-dto-lsp): Install the plugin from the marketplace
-- Eclipse: First install new software [LSP4E](https://download.eclipse.org/lsp4e/releases/latest/) and then move the plugin
+- Eclipse: First install new software [LSP4E](https://download.eclipse.org/lsp4e/releases/latest/) and then move the
+  plugin
   to the `dropins` folder
 - Other IDEs: Install the LSP server from the release page
 
@@ -65,3 +66,29 @@
 - `build/tmp/kotlin-classes/debug` Gradle Android Kotlin
 - `build/intermediates/javac/debug/classes` Gradle Android Java
 - `build/intermediates/javac/debug/compileDebugJavaWithJavac/classes` Gradle Android Java
+
+If you want to add a new jar classpath, you can add it to the `dependencies.json` file in the LSP server
+directory(`<user>/jimmer-dto-lsp`).
+
+In Windows your path should be like this:
+
+```json
+{
+  "x:\\path\\to\\your\\jar": [
+    "C:\\path\\to\\your\\jar"
+  ]
+}
+```
+
+In Linux or MacOS your path should be like this:
+
+```json
+{
+  "/path/to/your/jar": [
+    "/path/to/your/jar"
+  ]
+}
+```
+
+If you want to add a new jar classpath automatically, you can use
+the [jimmer-gradle](https://github.com/Enaium/jimmer-gradle) plugin.

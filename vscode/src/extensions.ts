@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-import path = require("path");
+import * as path from "path";
+import * as fs from "fs";
+import * as os from "os";
 import { ExtensionContext, window } from "vscode";
 
 import {
@@ -24,10 +26,20 @@ import {
   TransportKind,
 } from "vscode-languageclient/node";
 
-const serverJar = path.join(__dirname, "server.jar");
+const serverJar = path.join(os.homedir(), "jimmer-dto-lsp", "server.jar");
+const embedJar = path.join(__dirname, "server.jar");
 let client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
+  if (fs.existsSync(serverJar)) {
+    try {
+      fs.unlinkSync(serverJar);
+    } catch (e) {}
+  }
+
+  fs.mkdirSync(path.join(os.homedir(), "jimmer-dto-lsp"), { recursive: true });
+  fs.copyFileSync(embedJar, serverJar);
+
   const serverOptions: ServerOptions = {
     command: "java",
     args: ["-cp", serverJar, "cn.enaium.jimmer.dto.lsp.MainKt"],

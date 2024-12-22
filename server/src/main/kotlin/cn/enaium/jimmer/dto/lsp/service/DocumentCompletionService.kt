@@ -17,7 +17,6 @@
 package cn.enaium.jimmer.dto.lsp.service
 
 import cn.enaium.jimmer.dto.lsp.DocumentManager
-import cn.enaium.jimmer.dto.lsp.Main
 import cn.enaium.jimmer.dto.lsp.compiler.Context
 import cn.enaium.jimmer.dto.lsp.compiler.ImmutableProp
 import cn.enaium.jimmer.dto.lsp.compiler.ImmutableType
@@ -36,7 +35,6 @@ import org.eclipse.lsp4j.jsonrpc.messages.Either
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import kotlin.collections.set
-import kotlin.io.path.toPath
 
 /**
  * @author Enaium
@@ -356,11 +354,7 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
 
     private fun findAnnotationNames(context: Context, classpath: List<Path> = emptyList()): List<String> {
         val results = mutableListOf<String>()
-        findClassNames(
-            listOf(
-                Main::class.java.protectionDomain.codeSource.location.toURI().toPath()
-            ) + classpath
-        ).forEach { name ->
+        findClassNames(classpath).forEach { name ->
             context.loader[name]?.run {
                 if (this.isAnnotation) {
                     results.add(name)
