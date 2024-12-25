@@ -8,6 +8,8 @@
     </description>
     <change-notes>
         <![CDATA[<h1>Change notes</h1>
+        <p><b>1.4.1</b></p>
+        <ul><li>Change language id</li></ul>
         <p><b>1.4.0</b></p>
         <ul><li>Support 'dependencies.json' config</li></ul>
         <p><b>1.3.1</b></p>
@@ -45,7 +47,7 @@
     <depends>com.redhat.devtools.lsp4ij</depends>
     <extensions defaultExtensionNs="com.intellij">
         <fileType name="Jimmer DTO" implementationClass="cn.enaium.jimmer.dto.lsp.intellij.DtoFileType"
-                  language="jimmer-dto"
+                  language="JimmerDTO"
                   extensions="dto" fieldName="INSTANCE"/>
     </extensions>
     <extensions defaultExtensionNs="com.redhat.devtools.lsp4ij">
@@ -56,6 +58,6 @@
                 <p>Provides support for Jimmer DTO in IntelliJ IDEA.</p>]]>
             </description>
         </server>
-        <languageMapping language="jimmer-dto" serverId="jimmer-dto"/>
+        <languageMapping language="JimmerDTO" serverId="jimmer-dto"/>
     </extensions>
 </idea-plugin>

@@ -3,7 +3,7 @@
   "displayName": "Jimmer DTO LSP",
   "publisher": "enaium",
   "author": "Enaium",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "A language server for Jimmer DTO",
   "icon": "icons/logo.png",
   "main": "out/extensions",
@@ -38,7 +38,12 @@
   "engines": {
     "vscode": "^1.75.0"
   },
-  "keywords": [],
+  "keywords": [
+    "dto",
+    "jimmer",
+    "lsp",
+    "language"
+  ],
   "license": "Apache-2.0",
   "devDependencies": {
     "@types/node": "^22.10.1",
