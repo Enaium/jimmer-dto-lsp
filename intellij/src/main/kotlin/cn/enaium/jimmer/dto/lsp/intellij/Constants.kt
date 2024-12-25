@@ -24,7 +24,7 @@ import com.intellij.openapi.util.IconLoader
 object Constants {
     val ICON = IconLoader.getIcon("/icons/logo.svg", Constants::class.java)
     val DTO = Dto()
-    const val ID = "jimmer-dto"
+    const val ID = "JimmerDTO"
     const val DISPLAY = "Jimmer DTO"
     const val EXTENSION = "dto"
     const val HOME = "jimmer-dto-lsp"
