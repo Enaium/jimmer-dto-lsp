@@ -67,25 +67,27 @@
 - `build/intermediates/javac/debug/classes` Gradle Android Java
 - `build/intermediates/javac/debug/compileDebugJavaWithJavac/classes` Gradle Android Java
 
-If you want to add a new jar classpath, you can add it to the `dependencies.json` file in the LSP server
+If you want to add a new classpath, you can add it to the `dependencies.json` file in the LSP server
 directory(`<user>/jimmer-dto-lsp`).
 
 In Windows your path should be like this:
 
-```json
+```json5
 {
-  "x:\\path\\to\\your\\jar": [
-    "C:\\path\\to\\your\\jar"
+  "X:\\path\\to\\your\\project": [
+    "X:\\path\\to\\your\\xx.jar",//Jar classpath
+    "X:\\path\\to\\your\\project\\build\\classes\\kotlin\\main"//Directory classpath
   ]
 }
 ```
 
 In Linux or MacOS your path should be like this:
 
-```json
+```json5
 {
-  "/path/to/your/jar": [
-    "/path/to/your/jar"
+  "/path/to/your/project": [
+    "/path/to/your/xx.jar",//Jar classpath
+    "/path/to/your/project/build/classes/kotlin/main"//Directory classpath
   ]
 }
 ```
