@@ -34,6 +34,7 @@
 - Visual Studio Code
 - IntelliJ IDEA
 - Eclipse
+- Neovim
 - Any IDEs that support LSP
 
 ## Supported Platforms
@@ -48,6 +49,8 @@
 - Eclipse: First install new software [LSP4E](https://download.eclipse.org/lsp4e/releases/latest/) and then move the
   plugin
   to the `dropins` folder
+- [Neovim](./neovim): Install the neovim plugin and the move the server jar file to the
+  `<userdir>/jimmer-dto-lsp/server.jar`
 - Other IDEs: Install the LSP server from the release page
 
 ## Usage
@@ -68,15 +71,17 @@
 - `build/intermediates/javac/debug/compileDebugJavaWithJavac/classes` Gradle Android Java
 
 If you want to add a new classpath, you can add it to the `dependencies.json` file in the LSP server
-directory(`<user>/jimmer-dto-lsp`).
+directory(`<userdir>/jimmer-dto-lsp`).
 
 In Windows your path should be like this:
 
 ```json5
 {
   "X:\\path\\to\\your\\project": [
-    "X:\\path\\to\\your\\xx.jar",//Jar classpath
-    "X:\\path\\to\\your\\project\\build\\classes\\kotlin\\main"//Directory classpath
+    "X:\\path\\to\\your\\xx.jar",
+    //Jar classpath
+    "X:\\path\\to\\your\\project\\build\\classes\\kotlin\\main"
+    //Directory classpath
   ]
 }
 ```
@@ -86,8 +91,10 @@ In Linux or MacOS your path should be like this:
 ```json5
 {
   "/path/to/your/project": [
-    "/path/to/your/xx.jar",//Jar classpath
-    "/path/to/your/project/build/classes/kotlin/main"//Directory classpath
+    "/path/to/your/xx.jar",
+    //Jar classpath
+    "/path/to/your/project/build/classes/kotlin/main"
+    //Directory classpath
   ]
 }
 ```

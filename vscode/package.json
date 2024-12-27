@@ -21,7 +21,7 @@
   "contributes": {
     "languages": [
       {
-        "id": "jimmer-dto",
+        "id": "JimmerDTO",
         "extensions": [
           ".dto"
         ],
