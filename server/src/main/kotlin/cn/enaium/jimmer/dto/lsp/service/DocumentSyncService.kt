@@ -68,13 +68,11 @@ class DocumentSyncService(private val workspaceFolders: MutableSet<String>, docu
         val classpath = mutableListOf<Path>()
 
         projectDir?.also {
-            findClasspath(it, classpath)
-            classpath += findDependencies(it)
+            classpath += findClasspath(it) + findDependencies(it)
         } ?: run {
             workspaceFolders.forEach workspaceFolder@{ workspaceFolder ->
                 val path = URI.create(workspaceFolder).toPath()
-                findClasspath(path, classpath)
-                classpath += findDependencies(path)
+                classpath += findClasspath(path) + findDependencies(path)
             }
         }
         val context = Context(URLClassLoader(classpath.map { it.toUri().toURL() }.toTypedArray()))

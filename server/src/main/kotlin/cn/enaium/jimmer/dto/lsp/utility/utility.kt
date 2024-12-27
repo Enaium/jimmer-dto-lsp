@@ -43,9 +43,26 @@ private val classpathDirs = listOf(
     "build/intermediates/javac/debug/compileDebugJavaWithJavac/classes",
 )
 
+fun findClasspath(path: Path): List<Path> {
+    val results = mutableListOf<Path>()
+
+    classpathDirs.forEach {
+        val classpathDir = path.resolve(it)
+        if (classpathDir.exists()) {
+            results.add(classpathDir)
+        }
+    }
+
+    if (results.isEmpty()) {
+        findClasspath(path, results)
+    }
+
+    return results
+}
+
 private val noClassPathDirNames = listOf("node_modules", "src")
 
-fun findClasspath(path: Path, results: MutableList<Path>) {
+private fun findClasspath(path: Path, results: MutableList<Path>) {
     path.toFile().listFiles()?.forEach {
         val file = it.toPath()
         if (!file.isDirectory() || file.name.startsWith(".") || noClassPathDirNames.contains(file.name)) {
@@ -103,11 +120,8 @@ fun findDependencies(project: Path): MutableList<Path> {
 fun findProjectDir(dtoPath: Path): Path? {
     var parent = dtoPath.parent
     while (parent != null) {
-        val main = parent
-        val src = parent.parent?.name
-        val project = parent.parent?.parent
-        if (listOf("main", "test").contains(main.name) && src == "src") {
-            return project
+        if (listOf("build.gradle.kts", "build.gradle", "pom.xml", ".git").any { parent.resolve(it).exists() }) {
+            return parent
         }
         parent = parent.parent
     }
