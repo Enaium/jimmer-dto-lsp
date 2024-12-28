@@ -18,23 +18,27 @@ package cn.enaium.jimmer.dto.lsp
 
 import cn.enaium.jimmer.dto.lsp.Main.logger
 import cn.enaium.jimmer.dto.lsp.utility.SemanticType
+import cn.enaium.jimmer.dto.lsp.utility.findDependenciesByCommand
 import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.services.LanguageServer
 import org.eclipse.lsp4j.services.TextDocumentService
 import org.eclipse.lsp4j.services.WorkspaceService
+import java.net.URI
 import java.util.concurrent.CompletableFuture
+import kotlin.io.path.toPath
 
 /**
  * @author Enaium
  */
 class DtoLanguageServer : LanguageServer {
 
-    private val workspaceFolders = mutableSetOf<String>()
+    private val workspace: Workspace = Workspace()
 
     override fun initialize(params: InitializeParams): CompletableFuture<InitializeResult> {
 
         params.workspaceFolders?.forEach {
-            workspaceFolders.add(it.uri)
+            workspace.folders.add(it.uri)
+            workspace.dependencies += findDependenciesByCommand(URI.create(it.uri).toPath())
         }
 
         return CompletableFuture.completedFuture(InitializeResult(ServerCapabilities().apply {
@@ -80,7 +84,7 @@ class DtoLanguageServer : LanguageServer {
     }
 
     override fun getTextDocumentService(): TextDocumentService {
-        return DtoTextDocumentService(workspaceFolders)
+        return DtoTextDocumentService(workspace)
     }
 
     override fun getWorkspaceService(): WorkspaceService {

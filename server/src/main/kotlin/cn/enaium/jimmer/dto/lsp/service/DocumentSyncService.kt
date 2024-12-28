@@ -20,11 +20,12 @@ import cn.enaium.jimmer.dto.lsp.DocumentContext
 import cn.enaium.jimmer.dto.lsp.DocumentManager
 import cn.enaium.jimmer.dto.lsp.DtoDocument
 import cn.enaium.jimmer.dto.lsp.Main.client
+import cn.enaium.jimmer.dto.lsp.Workspace
 import cn.enaium.jimmer.dto.lsp.compiler.Context
 import cn.enaium.jimmer.dto.lsp.compiler.DocumentDtoCompiler
 import cn.enaium.jimmer.dto.lsp.compiler.ImmutableType
 import cn.enaium.jimmer.dto.lsp.utility.findClasspath
-import cn.enaium.jimmer.dto.lsp.utility.findDependencies
+import cn.enaium.jimmer.dto.lsp.utility.findDependenciesByFile
 import cn.enaium.jimmer.dto.lsp.utility.findProjectDir
 import cn.enaium.jimmer.dto.lsp.utility.toFile
 import org.antlr.v4.runtime.*
@@ -34,23 +35,24 @@ import java.io.Reader
 import java.net.URI
 import java.net.URLClassLoader
 import java.nio.file.Path
+import kotlin.io.path.name
 import kotlin.io.path.toPath
 
 /**
  * @author Enaium
  */
-class DocumentSyncService(private val workspaceFolders: MutableSet<String>, documentManager: DocumentManager) :
+class DocumentSyncService(private val workspace: Workspace, documentManager: DocumentManager) :
     DocumentServiceAdapter(documentManager) {
     override fun didOpen(params: DidOpenTextDocumentParams) {
         val content = params.textDocument.text
         content.isBlank() && return
-        validate(content, params.textDocument.uri)
+        validate(content, params.textDocument.uri, Type.OPEN)
     }
 
     override fun didChange(params: DidChangeTextDocumentParams) {
         val content = params.contentChanges[0].text
         content.isBlank() && return
-        validate(content, params.textDocument.uri)
+        validate(content, params.textDocument.uri, Type.CHANGE)
     }
 
     override fun didClose(params: DidCloseTextDocumentParams) {
@@ -60,19 +62,22 @@ class DocumentSyncService(private val workspaceFolders: MutableSet<String>, docu
     override fun didSave(params: DidSaveTextDocumentParams) {
         val content = params.text
         content.isBlank() && return
-        validate(content, params.textDocument.uri)
+        validate(content, params.textDocument.uri, Type.SAVE)
     }
 
-    private fun validate(content: String, uri: String) {
-        val projectDir = findProjectDir(URI.create(uri).toPath())
+    private fun validate(content: String, uri: String, type: Type) {
+        val path = URI.create(uri).toPath()
+        val projectDir = findProjectDir(path)
         val classpath = mutableListOf<Path>()
 
         projectDir?.also {
-            classpath += findClasspath(it) + findDependencies(it)
+            classpath += (findClasspath(it)
+                    + findDependenciesByFile(it)
+                    + workspace.dependencies.getOrDefault(projectDir.name, emptyList()))
         } ?: run {
-            workspaceFolders.forEach workspaceFolder@{ workspaceFolder ->
-                val path = URI.create(workspaceFolder).toPath()
-                classpath += findClasspath(path) + findDependencies(path)
+            workspace.folders.forEach workspaceFolder@{ workspaceFolder ->
+                val wf = URI.create(workspaceFolder).toPath()
+                classpath += findClasspath(wf) + findDependenciesByFile(wf)
             }
         }
         val context = Context(URLClassLoader(classpath.map { it.toUri().toURL() }.toTypedArray()))
@@ -116,7 +121,7 @@ class DocumentSyncService(private val workspaceFolders: MutableSet<String>, docu
                         return content.reader()
                     }
                 }, "", "", emptyList(), URI.create(uri).toFile().name))
-            context.findImmutableClass(projectDir, URI.create(uri).toPath(), documentDtoCompiler.sourceTypeName)?.run {
+            context.findImmutableClass(projectDir, path, documentDtoCompiler.sourceTypeName)?.run {
                 val immutableType = ImmutableType(context, this)
                 val compile = documentDtoCompiler.compile(immutableType)
                 client?.publishDiagnostics(PublishDiagnosticsParams().apply {
@@ -180,5 +185,9 @@ class DocumentSyncService(private val workspaceFolders: MutableSet<String>, docu
                 )
             )
         }
+    }
+
+    private enum class Type {
+        OPEN, CHANGE, CLOSE, SAVE
     }
 }

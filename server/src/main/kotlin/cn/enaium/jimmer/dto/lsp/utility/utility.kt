@@ -18,6 +18,8 @@ package cn.enaium.jimmer.dto.lsp.utility
 
 import cn.enaium.jimmer.dto.lsp.Main
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import org.antlr.v4.runtime.Token
 import org.babyfish.jimmer.dto.compiler.Constants
 import org.babyfish.jimmer.dto.compiler.DtoLexer
@@ -95,7 +97,7 @@ private fun findClasspath(path: Path, results: MutableList<Path>) {
     }
 }
 
-fun findDependencies(project: Path): MutableList<Path> {
+fun findDependenciesByFile(project: Path): MutableList<Path> {
     val results = mutableListOf<Path>()
     val lspHome = Main::class.java.protectionDomain.codeSource.location.toURI().toPath().parent
     lspHome.resolve("dependencies.json").takeIf { it.exists() }?.also {
@@ -117,15 +119,125 @@ fun findDependencies(project: Path): MutableList<Path> {
     return results
 }
 
-fun findProjectDir(dtoPath: Path): Path? {
+fun findDependenciesByCommand(project: Path): Map<String, List<Path>> {
+    val dependencyMap = mutableMapOf<String, List<Path>>()
+    val processBuilder = ProcessBuilder()
+    processBuilder.directory(project.toFile())
+    processBuilder.redirectErrorStream(true)
+    if (isGradleProject(project)) {
+        processBuilder.command(
+            *(if (System.getProperty("os.name").contains("Win")) {
+                arrayOf("powershell", "/c") + if (project.resolve("gradlew.bat").exists()) {
+                    arrayOf(project.resolve("gradlew.bat").absolutePathString())
+                } else {
+                    arrayOf("gradle")
+                }
+            } else {
+                arrayOf("bash", "-c") + if (project.resolve("gradlew").exists()) {
+                    arrayOf(project.resolve("gradlew").absolutePathString())
+                } else {
+                    arrayOf("gradle")
+                }
+            }),
+            "allProjectDependencies"
+        )
+        val start = processBuilder.start()
+        start.inputStream.use { input ->
+            val readText = input.reader().readText()
+            if (!readText.contains("SUCCESS")) {
+                return emptyMap()
+            }
+            readText.lines().find { it.startsWith("{") }?.also { json ->
+                jacksonObjectMapper().readValue<Map<String, List<String>>>(json).forEach { (key, value) ->
+                    dependencyMap[key] = value.map { Path(it) }
+                }
+            }
+        }
+        start.waitFor()
+    } else if (isMavenProject(project)) {
+        processBuilder.command(
+            *(if (System.getProperty("os.name").contains("Win")) {
+                arrayOf("powershell", "/c") + if (project.resolve("mvnw.cmd").exists()) {
+                    arrayOf(project.resolve("mvnw.cmd").absolutePathString())
+                } else {
+                    arrayOf("mvn")
+                }
+            } else {
+                arrayOf("bash", "-c") + if (project.resolve("mvnw").exists()) {
+                    arrayOf(project.resolve("mvnw").absolutePathString())
+                } else {
+                    arrayOf("mvn")
+                }
+            }),
+            "dependency:build-classpath",
+        )
+        val start = processBuilder.start()
+        start.inputStream.use { input ->
+            val readText = input.reader().readText()
+            if (!readText.contains("SUCCESS")) {
+                return emptyMap()
+            }
+
+            val iterator = readText.lines().iterator()
+            while (iterator.hasNext()) {
+                val line = iterator.next()
+                if (line.contains("@")) {
+                    val substring = line.substring(line.indexOf("@") + 1)
+                    val name = substring.split(" ")[1]
+                    if (iterator.next() == "[INFO] Dependencies classpath:") {
+                        val dependencies = iterator.next()
+                        dependencyMap[name] = dependencies.split(File.pathSeparator).map { Path(it) }
+                    }
+                }
+            }
+        }
+    }
+    return dependencyMap
+}
+
+fun isGradleProject(project: Path): Boolean {
+    return listOf("build.gradle.kts", "build.gradle").any { project.resolve(it).exists() }
+}
+
+fun isMavenProject(project: Path): Boolean {
+    return project.resolve("pom.xml").exists()
+}
+
+fun isProject(path: Path): Boolean {
+    return listOf("build.gradle.kts", "build.gradle", "pom.xml", ".git").any { path.resolve(it).exists() }
+}
+
+fun findProjectDir(dtoPath: Path, root: Boolean = false): Path? {
     var parent = dtoPath.parent
+    var rootPath: Path? = null
     while (parent != null) {
-        if (listOf("build.gradle.kts", "build.gradle", "pom.xml", ".git").any { parent.resolve(it).exists() }) {
-            return parent
+        if (isProject(parent)) {
+            if (root) {
+                rootPath = parent
+            } else {
+                return parent
+            }
         }
         parent = parent.parent
     }
-    return null
+    return rootPath
+}
+
+fun findSubprojects(rootProject: Path): List<Path> {
+    val results = mutableListOf<Path>()
+    findSubprojects(rootProject, results)
+    return results
+}
+
+private fun findSubprojects(rootProject: Path, results: MutableList<Path>, level: Int = 0) {
+    rootProject.toFile().listFiles()?.forEach {
+        val file = it.toPath()
+        if (file.isDirectory() && isProject(file)) {
+            results.add(file)
+            if (level < 4)
+                findSubprojects(file, results, level + 1)
+        }
+    }
 }
 
 fun findClassNames(classpath: List<Path>): List<String> {
