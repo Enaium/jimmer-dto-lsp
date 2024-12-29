@@ -61,8 +61,10 @@
 
 ## Requirements
 
-- You need to install JDK 21 or later in your system environment
-- Your project or subproject should have `gradlew` or `mvnw` file otherwise you need to install Gradle or Maven in your system environment
+- You need to install JDK 8 or later in your system environment, but make sure your jdk version is compatible with your
+  project
+- Your project or subproject should have `gradlew` or `mvnw` file otherwise you need to install Gradle or Maven in your
+  system environment
 
 ## Installation
 
