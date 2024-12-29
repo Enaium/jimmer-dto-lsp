@@ -16,19 +16,29 @@
 
 package cn.enaium.jimmer.dto.lsp
 
+import cn.enaium.jimmer.dto.lsp.service.WorkspaceExecuteCommand
 import org.eclipse.lsp4j.DidChangeConfigurationParams
 import org.eclipse.lsp4j.DidChangeWatchedFilesParams
+import org.eclipse.lsp4j.ExecuteCommandParams
 import org.eclipse.lsp4j.services.WorkspaceService
+import java.util.concurrent.CompletableFuture
 
 /**
  * @author Enaium
  */
-class DtoWorkspaceService : WorkspaceService {
+class DtoWorkspaceService(workspace: Workspace) : WorkspaceService {
+
+    private val executeCommand = WorkspaceExecuteCommand(workspace)
+
     override fun didChangeConfiguration(params: DidChangeConfigurationParams) {
 
     }
 
     override fun didChangeWatchedFiles(params: DidChangeWatchedFilesParams) {
 
+    }
+
+    override fun executeCommand(params: ExecuteCommandParams): CompletableFuture<Any> {
+        return executeCommand.executeCommand(params)
     }
 }

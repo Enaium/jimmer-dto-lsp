@@ -14,26 +14,11 @@
  * limitations under the License.
  */
 
-package cn.enaium.jimmer.dto.lsp
-
-import cn.enaium.jimmer.dto.lsp.Main.client
-import cn.enaium.jimmer.dto.lsp.utility.findDependenciesByCommand
-import org.eclipse.lsp4j.MessageParams
-import org.eclipse.lsp4j.MessageType
-import java.net.URI
-import java.nio.file.Path
-import kotlin.io.path.toPath
+package cn.enaium.jimmer.dto.lsp.utility
 
 /**
  * @author Enaium
  */
-data class Workspace(
-    val folders: MutableList<String> = mutableListOf(),
-    val dependencies: MutableMap<String, List<Path>> = mutableMapOf()
-) {
-    fun resolveDependencies() {
-        folders.forEach {
-            dependencies += findDependenciesByCommand(URI.create(it).toPath())
-        }
-    }
+enum class CommandType(val command: String) {
+    RESOLVE_DEPENDENCIES("jimmer.dto.resolveDependencies"),
 }

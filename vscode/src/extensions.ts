@@ -17,7 +17,15 @@
 import * as path from "path";
 import * as fs from "fs";
 import * as os from "os";
-import { ExtensionContext, window } from "vscode";
+import {
+  ExtensionContext,
+  window,
+  StatusBarItem,
+  StatusBarAlignment,
+  commands,
+  languages,
+  QuickPickItem,
+} from "vscode";
 
 import {
   LanguageClient,
@@ -58,6 +66,47 @@ export function activate(context: ExtensionContext) {
   );
 
   client.start();
+
+  const commandChooseOption = "jimmer.dto.chooseOption";
+
+  const languageStatusItem = languages.createLanguageStatusItem(
+    "jimmer.dto.languageStatus",
+    { language: "JimmerDTO" }
+  );
+  languageStatusItem.text = "Jimmer DTO";
+  languageStatusItem.command = {
+    title: "Choose Option",
+    command: commandChooseOption,
+  };
+  context.subscriptions.push(languageStatusItem);
+  const chooseOptionCommand = commands.registerCommand(
+    commandChooseOption,
+    async () => {
+      const viewLogs: QuickPickItem = {
+        label: "$(output-view-icon)View Logs",
+        description: "View the logs of the language server",
+      };
+
+      const resolveDependencies: QuickPickItem = {
+        label: "$(debug-restart)Resolve Dependencies",
+        description: "Resolve the dependencies of the language server",
+      };
+
+      const option = await window.showQuickPick([
+        viewLogs,
+        resolveDependencies,
+      ]);
+
+      if (option == viewLogs) {
+        client.outputChannel.show();
+      } else if (option == resolveDependencies) {
+        client.sendRequest("workspace/executeCommand", {
+          command: "jimmer.dto.resolveDependencies",
+        });
+      }
+    }
+  );
+  context.subscriptions.push(chooseOptionCommand);
 }
 
 export function deactivate(): Thenable<void> | undefined {

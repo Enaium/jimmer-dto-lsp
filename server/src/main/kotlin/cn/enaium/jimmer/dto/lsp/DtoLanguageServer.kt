@@ -17,6 +17,7 @@
 package cn.enaium.jimmer.dto.lsp
 
 import cn.enaium.jimmer.dto.lsp.Main.logger
+import cn.enaium.jimmer.dto.lsp.utility.CommandType
 import cn.enaium.jimmer.dto.lsp.utility.SemanticType
 import cn.enaium.jimmer.dto.lsp.utility.findDependenciesByCommand
 import org.eclipse.lsp4j.*
@@ -38,7 +39,7 @@ class DtoLanguageServer : LanguageServer {
 
         params.workspaceFolders?.forEach {
             workspace.folders.add(it.uri)
-            workspace.dependencies += findDependenciesByCommand(URI.create(it.uri).toPath())
+            workspace.resolveDependencies()
         }
 
         return CompletableFuture.completedFuture(InitializeResult(ServerCapabilities().apply {
@@ -46,6 +47,9 @@ class DtoLanguageServer : LanguageServer {
                 workspaceFolders = WorkspaceFoldersOptions().apply {
                     supported = true
                     setChangeNotifications(true)
+                }
+                executeCommandProvider = ExecuteCommandOptions().apply {
+                    commands = CommandType.entries.map { it.command }
                 }
             }
             setTextDocumentSync(TextDocumentSyncOptions().apply {
@@ -88,7 +92,7 @@ class DtoLanguageServer : LanguageServer {
     }
 
     override fun getWorkspaceService(): WorkspaceService {
-        return DtoWorkspaceService()
+        return DtoWorkspaceService(workspace)
     }
 
     override fun setTrace(params: SetTraceParams) {

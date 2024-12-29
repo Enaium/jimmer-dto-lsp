@@ -14,26 +14,19 @@
  * limitations under the License.
  */
 
-package cn.enaium.jimmer.dto.lsp
+package cn.enaium.jimmer.dto.lsp.intellij.action
 
-import cn.enaium.jimmer.dto.lsp.Main.client
-import cn.enaium.jimmer.dto.lsp.utility.findDependenciesByCommand
-import org.eclipse.lsp4j.MessageParams
-import org.eclipse.lsp4j.MessageType
-import java.net.URI
-import java.nio.file.Path
-import kotlin.io.path.toPath
+import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.wm.ToolWindowManager
 
 /**
  * @author Enaium
  */
-data class Workspace(
-    val folders: MutableList<String> = mutableListOf(),
-    val dependencies: MutableMap<String, List<Path>> = mutableMapOf()
-) {
-    fun resolveDependencies() {
-        folders.forEach {
-            dependencies += findDependenciesByCommand(URI.create(it).toPath())
+class ViewLogs : AnAction() {
+    override fun actionPerformed(event: AnActionEvent) {
+        event.project?.also {
+            ToolWindowManager.getInstance(it).getToolWindow("Language Servers")?.show()
         }
     }
 }

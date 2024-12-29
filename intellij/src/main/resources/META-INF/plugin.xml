@@ -51,6 +51,8 @@
         <fileType name="Jimmer DTO" implementationClass="cn.enaium.jimmer.dto.lsp.intellij.DtoFileType"
                   language="JimmerDTO"
                   extensions="dto" fieldName="INSTANCE"/>
+        <statusBarWidgetFactory implementation="cn.enaium.jimmer.dto.lsp.intellij.status.StatusBarItemFactory"
+                                id="cn.enaium.jimmer.dto.lsp.intellij.status.StatusBarItemFactory"/>
     </extensions>
     <extensions defaultExtensionNs="com.redhat.devtools.lsp4ij">
         <server id="jimmer-dto" name="Jimmer DTO"
@@ -62,4 +64,12 @@
         </server>
         <languageMapping language="JimmerDTO" serverId="jimmer-dto"/>
     </extensions>
+    <actions>
+        <action id="cn.enaium.jimmer.dto.lsp.intellij.action.ViewLogs"
+                class="cn.enaium.jimmer.dto.lsp.intellij.action.ViewLogs" text="View Logs"
+                description="View the logs of the language server"/>
+        <action id="cn.enaium.jimmer.dto.lsp.intellij.action.ResolveDependencies"
+                class="cn.enaium.jimmer.dto.lsp.intellij.action.ResolveDependencies" text="Resolve Dependencies"
+                description="Resolve the dependencies of the language server"/>
+    </actions>
 </idea-plugin>
