@@ -18,8 +18,11 @@ package cn.enaium.jimmer.dto.lsp
 
 import cn.enaium.jimmer.dto.lsp.Main.client
 import cn.enaium.jimmer.dto.lsp.utility.findDependenciesByCommand
-import org.eclipse.lsp4j.MessageParams
-import org.eclipse.lsp4j.MessageType
+import org.eclipse.lsp4j.ProgressParams
+import org.eclipse.lsp4j.WorkDoneProgressBegin
+import org.eclipse.lsp4j.WorkDoneProgressCreateParams
+import org.eclipse.lsp4j.WorkDoneProgressEnd
+import org.eclipse.lsp4j.jsonrpc.messages.Either
 import java.net.URI
 import java.nio.file.Path
 import kotlin.io.path.toPath
@@ -32,8 +35,17 @@ data class Workspace(
     val dependencies: MutableMap<String, List<Path>> = mutableMapOf()
 ) {
     fun resolveDependencies() {
+        val token = "Resolve Dependencies"
+        client?.createProgress(WorkDoneProgressCreateParams(Either.forLeft(token)))
+        client?.notifyProgress(ProgressParams(Either.forLeft(token), Either.forLeft(WorkDoneProgressBegin().apply {
+            title = "$token in progress"
+            cancellable = false
+        })))
         folders.forEach {
             dependencies += findDependenciesByCommand(URI.create(it).toPath())
         }
+        client?.notifyProgress(ProgressParams(Either.forLeft(token), Either.forLeft(WorkDoneProgressEnd().apply {
+            message = "$token done"
+        })))
     }
 }
