@@ -102,7 +102,11 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
                                 importLine = Range(Position(lastImportLine, 0), Position(lastImportLine, 0))
                             }
 
-                            if (sortedImportStatements.none { importStatement -> importStatement.parts.joinToString(".") { token -> token.text } == it }) {
+                            if (sortedImportStatements.none { importStatement ->
+                                    val joinToString = importStatement.parts.joinToString(".") { token -> token.text }
+                                    joinToString == it || (it.startsWith(joinToString) && importStatement.importedTypes.map { type -> type.text }
+                                        .contains(it.substring(joinToString.length + 1)))
+                                }) {
                                 additionalTextEdits = listOf(
                                     TextEdit(importLine, "import $it\n")
                                 )
