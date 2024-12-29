@@ -7,43 +7,7 @@
         <p>Provides support for Jimmer DTO in IntelliJ IDEA.</p>]]>
     </description>
     <change-notes>
-        <![CDATA[<h1>Change notes</h1>
-        <p><b>1.5.0</b></p>
-        <ul><li>Support maven dependencies</li></ul>
-        <p><b>1.4.1</b></p>
-        <ul><li>Change language id</li></ul>
-        <p><b>1.4.0</b></p>
-        <ul><li>Support 'dependencies.json' config</li></ul>
-        <p><b>1.3.1</b></p>
-        <ul>
-            <li>Fix completion in the parenthesis</li>
-            <li>Fix 'isSameType'</li>
-        </ul>
-        <p><b>1.3.0</b></p>
-        <ul>
-            <li>Support 'textDocument/formatting' for export and import</li>
-            <li>Better 'textDocument/semanticTokens/full' based on AST</li>
-            <li>Not completion in the comment or parameter</li>
-            <li>Support original entity package</li>
-        </ul>
-        <p><b>1.2.0</b></p>
-        <ul><li>Support 'export' and 'import' completion</li></ul>
-        <p><b>1.1.0</b></p>
-        <ul>
-            <li>Support 'textDocument/foldingRange'</li>
-            <li>Support 'textDocument/documentSymbol'</li>
-            <li>Support 'textDocument/completion' for prop, macro, function, keyword, comment etc.</li>
-        </ul>
-        <p><b>1.0.4</b></p>
-        <ul><li>Fix 'isStringProp'</li></ul>
-        <p><b>1.0.3</b></p>
-        <ul><li>Support 'KTransientResolver' etc.</li></ul>
-        <p><b>1.0.2</b></p>
-        <ul><li>Support 'isRecursive'</li></ul>
-        <p><b>1.0.1</b></p>
-        <ul><li>Better to find classpath</li></ul>
-        <p><b>1.0.0</b></p>
-        <ul><li>First publish</li></ul>]]>
+        <![CDATA[Please see the project's GitHub releases page for release notes.]]>
     </change-notes>
     <depends>com.intellij.modules.platform</depends>
     <depends>com.redhat.devtools.lsp4ij</depends>
