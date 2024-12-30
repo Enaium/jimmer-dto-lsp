@@ -34,7 +34,6 @@ import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
-import kotlin.collections.set
 
 /**
  * @author Enaium
@@ -81,6 +80,9 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
                         }).apply {
                             kind = CompletionItemKind.Class
                             sortText = "${sort++}"
+                            labelDetails = CompletionItemLabelDetails().apply {
+                                detail = " (from $it)"
+                            }
                             val sortedImportStatements =
                                 document.realTime.ast.importStatements.sortedWith { o1, o2 -> o2.Identifier.line - o1.Identifier.line }
                             val exportStatement = document.realTime.ast.exportStatement()
@@ -178,7 +180,8 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
                                 kind = CompletionItemKind.Field
                                 val type = prop.type()
                                 labelDetails = CompletionItemLabelDetails().apply {
-                                    description = "from ${prop.declaringType.name} is ${type.description}"
+                                    detail = "(from ${prop.declaringType.name})"
+                                    description = type.description
                                 }
 
                                 getParenthesisRange(realTimeTokens, params.position) ?: run {
