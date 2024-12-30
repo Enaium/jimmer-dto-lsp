@@ -276,6 +276,11 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
                             sortText = "${sort++}"
                         })
                     }
+
+                    completionItems.add(CompletionItem("import").apply {
+                        kind = CompletionItemKind.Keyword
+                        sortText = "${sort++}"
+                    })
                 }
                 return CompletableFuture.completedFuture(Either.forLeft(completionItems))
             }
