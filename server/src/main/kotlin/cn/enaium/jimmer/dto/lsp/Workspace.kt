@@ -18,13 +18,13 @@ package cn.enaium.jimmer.dto.lsp
 
 import cn.enaium.jimmer.dto.lsp.Main.client
 import cn.enaium.jimmer.dto.lsp.utility.findDependenciesByCommand
-import org.eclipse.lsp4j.ProgressParams
-import org.eclipse.lsp4j.WorkDoneProgressBegin
-import org.eclipse.lsp4j.WorkDoneProgressCreateParams
-import org.eclipse.lsp4j.WorkDoneProgressEnd
+import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import java.net.URI
 import java.nio.file.Path
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import kotlin.io.path.toPath
 
 /**
@@ -41,11 +41,25 @@ data class Workspace(
             title = "$token in progress"
             cancellable = false
         })))
-        folders.forEach {
-            dependencies += findDependenciesByCommand(URI.create(it).toPath())
+        try {
+            CompletableFuture.supplyAsync {
+                folders.forEach {
+                    dependencies += findDependenciesByCommand(URI.create(it).toPath())
+                }
+                client?.notifyProgress(
+                    ProgressParams(
+                        Either.forLeft(token),
+                        Either.forLeft(WorkDoneProgressEnd().apply {
+                            message = "$token done"
+                        })
+                    )
+                )
+            }.get(10, TimeUnit.SECONDS)
+        } catch (_: TimeoutException) {
+            client?.showMessage(MessageParams().apply {
+                message = "Resolve Dependencies timeout, please resolve dependencies manually"
+                type = MessageType.Error
+            })
         }
-        client?.notifyProgress(ProgressParams(Either.forLeft(token), Either.forLeft(WorkDoneProgressEnd().apply {
-            message = "$token done"
-        })))
     }
 }
