@@ -129,7 +129,8 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
                     document.realTime.commonToken.tokens.filter { it.channel == DtoLexer.DEFAULT_TOKEN_CHANNEL }
 
                 fun completionClass(keyword: String, names: List<String>) {
-                    val currentLineTokens = realTimeTokens.filter { it.line - 1 == params.position.line }
+                    val currentLineTokens =
+                        realTimeTokens.filter { it.line - 1 == params.position.line && it.type != DtoLexer.EOF }
                     if (currentLineTokens.size > 1 && currentLineTokens.first()?.text == keyword) {
                         val classTokens =
                             currentLineTokens.filterIndexed { index, _ -> index != 0 }
