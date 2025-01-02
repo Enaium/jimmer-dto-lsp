@@ -30,6 +30,7 @@
 - ✅ [textDocument/formatting](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_formatting).
 - ✅ [textDocument/semanticTokens/full](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_semanticTokens_full).
 - ✅ [textDocument/documentSymbol](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_documentSymbol).
+- ✅ [textDocument/hover](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_hover).
 - ✅ [workspace/executeCommand](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_executeCommand).
 - ✅ [$/progress](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#progress).
 
@@ -54,7 +55,7 @@
 ## Supported IDEs
 
 - Visual Studio Code
-- IntelliJ IDEA
+- IntelliJ IDEA (Recommend you change the default theme because the default theme semantic token color is not good)
 - Eclipse
 - Neovim
 - Any IDEs that support LSP
@@ -63,7 +64,7 @@
 
 - You need to install JDK 8 or later in your system environment, but make sure your jdk version is compatible with your
   project
-- Your project or subproject should have `gradlew` or `mvnw` file otherwise you need to install Gradle or Maven in your
+- Your project should have `gradlew` or `mvnw` file otherwise you need to install Gradle or Maven in your
   system environment
 
 ## Installation
