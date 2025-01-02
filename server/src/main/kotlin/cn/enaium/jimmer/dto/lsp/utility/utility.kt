@@ -17,6 +17,7 @@
 package cn.enaium.jimmer.dto.lsp.utility
 
 import cn.enaium.jimmer.dto.lsp.Main
+import cn.enaium.jimmer.dto.lsp.compiler.ImmutableProp
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
@@ -139,6 +140,7 @@ fun findDependenciesByCommand(project: Path): Map<String, List<Path>> {
                     arrayOf("gradle")
                 }
             }),
+            "--build-cache",
             "allProjectDependencies"
         )
         val start = processBuilder.start()
@@ -275,7 +277,9 @@ fun URI.toFile(): File {
 fun Token.range(): Range {
     return Range(
         Position(line - 1, charPositionInLine),
-        Position(line - 1 + text.count { it == '\n' }, text.length - text.lastIndexOf('\n') - 1)
+        Position(
+            line - 1 + text.count { it == '\n' },
+            text.length - text.lastIndexOf('\n').let { if (it == -1) 0 else it } + charPositionInLine)
     )
 }
 
@@ -284,7 +288,9 @@ fun Token.position(textLength: Boolean = false): Position {
 }
 
 fun Range.overlaps(position: Position): Boolean {
-    return if (start.line == position.line) {
+    return if (start.line == position.line && end.line == position.line) {
+        start.character <= position.character && end.character >= position.character
+    } else if (start.line == position.line) {
         start.character <= position.character
     } else if (end.line == position.line) {
         end.character >= position.character
@@ -295,6 +301,32 @@ fun Range.overlaps(position: Position): Boolean {
 
 fun Token.literal(): String? {
     return DtoLexer.VOCABULARY.getLiteralName(this.type)
+}
+
+fun ImmutableProp.type(): PropType {
+    return if (isId) {
+        PropType.ID
+    } else if (isKey) {
+        PropType.KEY
+    } else if (isEmbedded) {
+        PropType.EMBEDDED
+    } else if (isFormula) {
+        PropType.FORMULA
+    } else if (isTransient) {
+        if (hasTransientResolver()) PropType.CALCULATION else PropType.TRANSIENT
+    } else if (isRecursive) {
+        PropType.RECURSIVE
+    } else if (isAssociation(true)) {
+        PropType.ASSOCIATION
+    } else if (isList) {
+        PropType.LIST
+    } else if (isLogicalDeleted) {
+        PropType.LOGICAL_DELETED
+    } else if (isNullable) {
+        PropType.NULLABLE
+    } else {
+        PropType.PROPERTY
+    }
 }
 
 val commonFuncNames = setOf("flat")

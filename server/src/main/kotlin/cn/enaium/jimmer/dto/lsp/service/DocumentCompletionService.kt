@@ -289,32 +289,6 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
         return CompletableFuture.completedFuture(Either.forLeft(emptyList()))
     }
 
-    private fun ImmutableProp.type(): PropType {
-        return if (isId) {
-            PropType.ID
-        } else if (isKey) {
-            PropType.KEY
-        } else if (isEmbedded) {
-            PropType.EMBEDDED
-        } else if (isFormula) {
-            PropType.FORMULA
-        } else if (isTransient) {
-            if (hasTransientResolver()) PropType.CALCULATION else PropType.TRANSIENT
-        } else if (isRecursive) {
-            PropType.RECURSIVE
-        } else if (isAssociation(true)) {
-            PropType.ASSOCIATION
-        } else if (isList) {
-            PropType.LIST
-        } else if (isLogicalDeleted) {
-            PropType.LOGICAL_DELETED
-        } else if (isNullable) {
-            PropType.NULLABLE
-        } else {
-            PropType.PROPERTY
-        }
-    }
-
     private fun getBodyRange(
         bodyContext: DtoParser.DtoBodyContext,
         prefix: String,

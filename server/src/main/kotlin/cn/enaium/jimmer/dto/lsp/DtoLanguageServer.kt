@@ -76,6 +76,7 @@ class DtoLanguageServer : LanguageServer {
                 label = "Jimmer DTO"
             })
             setDocumentFormattingProvider(true)
+            setHoverProvider(true)
         }))
     }
 

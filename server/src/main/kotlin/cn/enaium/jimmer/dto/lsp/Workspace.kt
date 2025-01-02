@@ -54,8 +54,16 @@ data class Workspace(
                         })
                     )
                 )
-            }.get(10, TimeUnit.SECONDS)
+            }.get(20, TimeUnit.SECONDS)
         } catch (_: TimeoutException) {
+            client?.notifyProgress(
+                ProgressParams(
+                    Either.forLeft(token),
+                    Either.forLeft(WorkDoneProgressEnd().apply {
+                        message = "$token timeout"
+                    })
+                )
+            )
             client?.showMessage(MessageParams().apply {
                 message = "Resolve Dependencies timeout, please resolve dependencies manually"
                 type = MessageType.Error
