@@ -16,7 +16,6 @@
 
 package cn.enaium.jimmer.dto.lsp
 
-import cn.enaium.jimmer.dto.lsp.Main.client
 import cn.enaium.jimmer.dto.lsp.utility.findDependenciesByCommand
 import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either

@@ -19,14 +19,12 @@ package cn.enaium.jimmer.dto.lsp.service
 import cn.enaium.jimmer.dto.lsp.DocumentManager
 import cn.enaium.jimmer.dto.lsp.compiler.Context
 import cn.enaium.jimmer.dto.lsp.compiler.ImmutableProp
-import cn.enaium.jimmer.dto.lsp.compiler.ImmutableType
 import cn.enaium.jimmer.dto.lsp.compiler.get
 import cn.enaium.jimmer.dto.lsp.utility.*
 import org.antlr.v4.runtime.Token
 import org.babyfish.jimmer.Immutable
 import org.babyfish.jimmer.dto.compiler.DtoLexer
 import org.babyfish.jimmer.dto.compiler.DtoModifier
-import org.babyfish.jimmer.dto.compiler.DtoParser
 import org.babyfish.jimmer.sql.Embeddable
 import org.babyfish.jimmer.sql.Entity
 import org.babyfish.jimmer.sql.MappedSuperclass
@@ -167,42 +165,35 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
                     getProps(dtoType.baseType, "${dtoType.name}", callTraceToProps)
                 }
 
-                val current = callTraceToRange.filter {
-                    Range(
-                        it.value.first.position(),
-                        it.value.second.position()
-                    ).overlaps(params.position)
-                }.entries.sortedWith { o1, o2 ->
-                    o2.value.first.line - o1.value.first.line
-                }.firstOrNull()?.let {
-                    callTraceToProps[it.key]?.run {
-                        completionItems += map { prop ->
-                            CompletionItem(prop.name).apply {
-                                kind = CompletionItemKind.Field
-                                val type = prop.type()
-                                labelDetails = CompletionItemLabelDetails().apply {
-                                    detail = "(from ${prop.declaringType.name})"
-                                    description = type.description
-                                }
+                val props = document.getProps(params.position)
 
-                                getParenthesisRange(realTimeTokens, params.position) ?: run {
-                                    if (type == PropType.ASSOCIATION) {
-                                        insertText = "${prop.name} { \n\t$0\n}"
-                                        insertTextFormat = InsertTextFormat.Snippet
-                                    } else if (type == PropType.RECURSIVE) {
-                                        insertText = "${prop.name}*"
-                                    }
-                                }
-                                sortText = "${sort++}"
+                val isInBlock = props != null
+
+                if (isInBlock) {
+                    completionItems += props.second.map { prop ->
+                        CompletionItem(prop.name).apply {
+                            kind = CompletionItemKind.Field
+                            val type = prop.type()
+                            labelDetails = CompletionItemLabelDetails().apply {
+                                detail = "(from ${prop.declaringType.name})"
+                                description = type.description
                             }
+
+                            getParenthesisRange(realTimeTokens, params.position) ?: run {
+                                if (type == PropType.ASSOCIATION) {
+                                    insertText = "${prop.name} { \n\t$0\n}"
+                                    insertTextFormat = InsertTextFormat.Snippet
+                                } else if (type == PropType.RECURSIVE) {
+                                    insertText = "${prop.name}*"
+                                }
+                            }
+                            sortText = "${sort++}"
                         }
                     }
-                    it
                 }
 
-                val isInBlock = current != null
                 val isInSpecificationBlock =
-                    document.rightTime.dtoTypes.find { current?.key?.startsWith("${it.name}") == true }?.modifiers?.contains(
+                    document.rightTime.dtoTypes.find { props?.first?.startsWith("${it.name}") == true }?.modifiers?.contains(
                         DtoModifier.SPECIFICATION
                     ) == true
 
@@ -287,37 +278,6 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
             }
         }
         return CompletableFuture.completedFuture(Either.forLeft(emptyList()))
-    }
-
-    private fun getBodyRange(
-        bodyContext: DtoParser.DtoBodyContext,
-        prefix: String,
-        results: MutableMap<String, Pair<Token, Token>>
-    ) {
-        results[prefix] = bodyContext.start to bodyContext.stop
-        for (explicitProp in bodyContext.explicitProps) {
-            val positivePropContext = explicitProp.positiveProp() ?: continue
-            val dtoBodyContext = positivePropContext.dtoBody() ?: continue
-            val text = explicitProp.start.text
-            val x = prefix + "." + (if (text == "flat") explicitProp.positiveProp().props[0].text else text)
-            results[x] = explicitProp.start to explicitProp.stop
-            getBodyRange(dtoBodyContext, x, results)
-        }
-    }
-
-    private fun getProps(
-        immutableType: ImmutableType,
-        prefix: String,
-        results: MutableMap<String, List<ImmutableProp>>
-    ) {
-        results[prefix] = immutableType.properties.values.toList()
-        for (prop in immutableType.properties.values) {
-            if (prop.isAssociation(false) && prefix.count { it == '.' } < 10) {
-                prop.targetType?.run {
-                    getProps(this, prefix + "." + prop.name, results)
-                }
-            }
-        }
     }
 
     private fun findImmutableNames(context: Context, classpath: List<Path>): List<String> {

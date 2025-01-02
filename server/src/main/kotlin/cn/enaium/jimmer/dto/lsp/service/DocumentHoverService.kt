@@ -17,8 +17,12 @@
 package cn.enaium.jimmer.dto.lsp.service
 
 import cn.enaium.jimmer.dto.lsp.DocumentManager
+import cn.enaium.jimmer.dto.lsp.DtoDocument
+import cn.enaium.jimmer.dto.lsp.compiler.ImmutableProp
+import cn.enaium.jimmer.dto.lsp.utility.getProps
 import cn.enaium.jimmer.dto.lsp.utility.overlaps
 import cn.enaium.jimmer.dto.lsp.utility.position
+import org.babyfish.jimmer.dto.compiler.DtoParser
 import org.eclipse.lsp4j.*
 import java.util.concurrent.CompletableFuture
 
@@ -27,11 +31,16 @@ import java.util.concurrent.CompletableFuture
  */
 class DocumentHoverService(documentManager: DocumentManager) : DocumentServiceAdapter(documentManager) {
 
+    private var hover: Hover? = null
+    private lateinit var params: HoverParams
+    private lateinit var document: DtoDocument
+
     override fun hover(params: HoverParams): CompletableFuture<Hover?> {
-        val document = documentManager.getDocument(params.textDocument.uri)
+        document = documentManager.getDocument(params.textDocument.uri)
             ?: return CompletableFuture.completedFuture(null)
 
-        var hover: Hover? = null
+        hover = null
+        this.params = params
 
         val ast = document.realTime.ast
 
@@ -97,6 +106,70 @@ class DocumentHoverService(documentManager: DocumentManager) : DocumentServiceAd
                 }
             }
         }
+
+        ast.dtoTypes.forEach { dtoType ->
+            dtoType.dtoBody()?.also { dtoBody ->
+                body(dtoBody)
+            }
+        }
+
         return CompletableFuture.completedFuture(hover)
+    }
+
+    private fun macro(macro: DtoParser.MicroContext) {
+        val macroRange = Range(
+            macro.start.position(),
+            macro.stop.position(true)
+        )
+        if (macroRange.overlaps(params.position)) {
+            val props = document.getProps(params.position) ?: return
+            val isAllReferences = macro.name.text == "allReferences"
+            if (macro.args.isEmpty() || macro.args[0].text == "this") {
+                hover = Hover(
+                    MarkupContent(
+                        MarkupKind.MARKDOWN,
+                        """
+                                ## ${macro.name.text}
+                                ${
+                            props.second.filter { if (isAllReferences) isAutoReference(it) else isAutoScalar(it) }
+                                .joinToString { "`${it.name}`" }
+                        }
+                            """.trimIndent()
+                    ), macroRange
+                )
+            }
+        }
+    }
+
+    private fun positiveProp(positiveProp: DtoParser.PositivePropContext) {
+        positiveProp.dtoBody()?.also { dtoBody ->
+            body(dtoBody)
+        }
+    }
+
+    private fun body(body: DtoParser.DtoBodyContext) {
+        body.explicitProps.forEach { prop ->
+            prop.micro()?.also { macro ->
+                macro(macro)
+            }
+            prop.positiveProp()?.also { positiveProp ->
+                positiveProp(positiveProp)
+            }
+        }
+    }
+
+    private fun isAutoReference(baseProp: ImmutableProp): Boolean {
+        return baseProp.isAssociation(true) && !baseProp.isList && !baseProp.isTransient
+    }
+
+    private fun isAutoScalar(baseProp: ImmutableProp): Boolean {
+        return !baseProp.isFormula &&
+                !baseProp.isTransient &&
+                !baseProp.isIdView &&
+                !baseProp.isManyToManyView &&
+                !baseProp.isList &&
+                !baseProp.isAssociation(true) &&
+                !baseProp.isLogicalDeleted &&
+                !baseProp.isExcludedFromAllScalars
     }
 }

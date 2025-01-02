@@ -75,8 +75,10 @@ class ImmutableProp(
 
     override val idViewBaseProp: BaseProp? = null
 
+    val isIdView: Boolean = member.annotations.any { it.annotationClass.qualifiedName == IdView::class.qualifiedName }
+
     override val isEmbedded: Boolean
-        get() = targetType?.isEmbeddable ?: false
+        get() = targetType?.isEmbeddable == true
 
     override val isExcludedFromAllScalars: Boolean
         get() = member.annotations.any { it.annotationClass.qualifiedName == ExcludeFromAllScalars::class.qualifiedName }
@@ -119,6 +121,9 @@ class ImmutableProp(
         member.annotations.any { it.annotationClass.qualifiedName == Transient::class.qualifiedName }
 
     override val manyToManyViewBaseProp: BaseProp? = null
+
+    val isManyToManyView: Boolean =
+        member.annotations.any { it.annotationClass.qualifiedName == ManyToManyView::class.qualifiedName }
 
     override val name: String
         get() = member.name

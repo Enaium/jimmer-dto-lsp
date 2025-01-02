@@ -16,14 +16,17 @@
 
 package cn.enaium.jimmer.dto.lsp.utility
 
+import cn.enaium.jimmer.dto.lsp.DtoDocument
 import cn.enaium.jimmer.dto.lsp.Main
 import cn.enaium.jimmer.dto.lsp.compiler.ImmutableProp
+import cn.enaium.jimmer.dto.lsp.compiler.ImmutableType
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import org.antlr.v4.runtime.Token
 import org.babyfish.jimmer.dto.compiler.Constants
 import org.babyfish.jimmer.dto.compiler.DtoLexer
+import org.babyfish.jimmer.dto.compiler.DtoParser
 import org.eclipse.lsp4j.Position
 import org.eclipse.lsp4j.Range
 import java.io.File
@@ -327,6 +330,64 @@ fun ImmutableProp.type(): PropType {
     } else {
         PropType.PROPERTY
     }
+}
+
+fun getProps(
+    immutableType: ImmutableType,
+    prefix: String,
+    results: MutableMap<String, List<ImmutableProp>>
+) {
+    results[prefix] = immutableType.properties.values.toList()
+    for (prop in immutableType.properties.values) {
+        if (prop.isAssociation(false) && prefix.count { it == '.' } < 10) {
+            prop.targetType?.run {
+                getProps(this, prefix + "." + prop.name, results)
+            }
+        }
+    }
+}
+
+fun getBodyRange(
+    bodyContext: DtoParser.DtoBodyContext,
+    prefix: String,
+    results: MutableMap<String, Pair<Token, Token>>
+) {
+    results[prefix] = bodyContext.start to bodyContext.stop
+    for (explicitProp in bodyContext.explicitProps) {
+        val positivePropContext = explicitProp.positiveProp() ?: continue
+        val dtoBodyContext = positivePropContext.dtoBody() ?: continue
+        val text = explicitProp.start.text
+        val x = prefix + "." + (if (text == "flat") explicitProp.positiveProp().props[0].text else text)
+        results[x] = explicitProp.start to explicitProp.stop
+        getBodyRange(dtoBodyContext, x, results)
+    }
+}
+
+fun DtoDocument.getProps(position: Position): Pair<String, List<ImmutableProp>>? {
+    val callTraceToRange = mutableMapOf<String, Pair<Token, Token>>()
+    val callTraceToProps = mutableMapOf<String, List<ImmutableProp>>()
+
+    rightTime.ast.dtoTypes.forEach { dtoType ->
+        if (dtoType.name == null) return@forEach
+        val bodyContext = dtoType.dtoBody() ?: return@forEach
+        getBodyRange(bodyContext, dtoType.name.text, callTraceToRange)
+    }
+
+    rightTime.dtoTypes.forEach { dtoType ->
+        if (dtoType.name == null) return@forEach
+        getProps(dtoType.baseType, "${dtoType.name}", callTraceToProps)
+    }
+
+    val callTrace = callTraceToRange.filter {
+        Range(
+            it.value.first.position(),
+            it.value.second.position()
+        ).overlaps(position)
+    }.entries.sortedWith { o1, o2 ->
+        o2.value.first.line - o1.value.first.line
+    }.firstOrNull()?.key ?: return null
+
+    return callTraceToProps[callTrace]?.let { callTrace to it }
 }
 
 val commonFuncNames = setOf("flat")

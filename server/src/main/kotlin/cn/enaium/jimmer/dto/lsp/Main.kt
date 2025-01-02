@@ -16,8 +16,6 @@
 
 package cn.enaium.jimmer.dto.lsp
 
-import cn.enaium.jimmer.dto.lsp.Main.client
-import cn.enaium.jimmer.dto.lsp.Main.logger
 import org.eclipse.lsp4j.jsonrpc.Launcher
 import org.eclipse.lsp4j.services.LanguageClient
 import java.io.InputStream
@@ -41,7 +39,7 @@ fun start(input: InputStream, output: OutputStream) {
     launcher.startListening()
 }
 
-object Main {
-    val logger: Logger = Logger.getLogger("JimmerDtoLanguageServer")
-    var client: LanguageClient? = null
-}
+class Main
+
+val logger: Logger = Logger.getLogger("JimmerDtoLanguageServer")
+var client: LanguageClient? = null

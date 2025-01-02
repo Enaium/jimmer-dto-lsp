@@ -16,17 +16,13 @@
 
 package cn.enaium.jimmer.dto.lsp
 
-import cn.enaium.jimmer.dto.lsp.Main.logger
 import cn.enaium.jimmer.dto.lsp.utility.CommandType
 import cn.enaium.jimmer.dto.lsp.utility.SemanticType
-import cn.enaium.jimmer.dto.lsp.utility.findDependenciesByCommand
 import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.services.LanguageServer
 import org.eclipse.lsp4j.services.TextDocumentService
 import org.eclipse.lsp4j.services.WorkspaceService
-import java.net.URI
 import java.util.concurrent.CompletableFuture
-import kotlin.io.path.toPath
 
 /**
  * @author Enaium
