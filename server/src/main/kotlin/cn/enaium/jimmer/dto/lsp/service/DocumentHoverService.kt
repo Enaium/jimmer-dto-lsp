@@ -118,7 +118,7 @@ class DocumentHoverService(documentManager: DocumentManager) : DocumentServiceAd
         return CompletableFuture.completedFuture(hover)
     }
 
-    private fun macro(macro: DtoParser.MicroContext) {
+    private fun macro(macro: DtoParser.MicroContext, pattern: DtoParser.AliasPatternContext? = null) {
         val macroRange = Range(
             macro.start.position(),
             macro.stop.position(true)
@@ -134,7 +134,16 @@ class DocumentHoverService(documentManager: DocumentManager) : DocumentServiceAd
                                 ## ${macro.name.text}
                                 ${
                             props.second.filter { if (isAllReferences) isAutoReference(it) else isAutoScalar(it) }
-                                .joinToString { "`${it.name}`" }
+                                .joinToString {
+                                    "`${
+                                        pattern?.let { pattern ->
+                                            pattern(
+                                                it.name,
+                                                pattern
+                                            )
+                                        } ?: it.name
+                                    }`"
+                                }
                         }
                             """.trimIndent()
                     ), macroRange
@@ -143,7 +152,14 @@ class DocumentHoverService(documentManager: DocumentManager) : DocumentServiceAd
         }
     }
 
-    private fun prop(token: Token, optional: Boolean = false, required: Boolean = false, negative: Boolean = false) {
+    private fun prop(
+        token: Token,
+        optional: Boolean = false,
+        required: Boolean = false,
+        negative: Boolean = false,
+        alias: Token? = null,
+        pattern: DtoParser.AliasPatternContext? = null
+    ) {
         val range = Range(
             token.position(),
             token.position(true)
@@ -156,7 +172,13 @@ class DocumentHoverService(documentManager: DocumentManager) : DocumentServiceAd
                 MarkupContent(
                     MarkupKind.MARKDOWN,
                     """
-                        ## ${prop.name}
+                        ## ${prop.name} ${
+                        if (pattern != null) {
+                            pattern(prop.name, pattern)
+                        } else {
+                            alias?.let { "`${it.text}`" } ?: ""
+                        }
+                    }
                         Trace: `${props.first}.${prop.name}`
                         
                         From: `${prop.declaringType.name}`
@@ -186,10 +208,19 @@ class DocumentHoverService(documentManager: DocumentManager) : DocumentServiceAd
         }
     }
 
-    private fun positiveProp(positiveProp: DtoParser.PositivePropContext) {
+    private fun positiveProp(
+        positiveProp: DtoParser.PositivePropContext,
+        pattern: DtoParser.AliasPatternContext? = null
+    ) {
 
         positiveProp.props.forEach {
-            prop(it, optional = positiveProp.optional != null, required = positiveProp.required != null)
+            prop(
+                it,
+                optional = positiveProp.optional != null,
+                required = positiveProp.required != null,
+                alias = positiveProp.alias,
+                pattern = pattern
+            )
         }
 
         positiveProp.dtoBody()?.also { dtoBody ->
@@ -207,6 +238,52 @@ class DocumentHoverService(documentManager: DocumentManager) : DocumentServiceAd
             }
             prop.negativeProp()?.also { negativeProp ->
                 prop(negativeProp.prop, negative = true)
+            }
+            prop.aliasGroup()?.also { aliasGroup ->
+                aliasGroup.pattern?.also { pattern ->
+                    aliasGroup.props.forEach { alias ->
+                        alias.micro()?.also { micro ->
+                            macro(micro, pattern)
+                        }
+                        alias.positiveProp()?.also { positiveProp ->
+                            positiveProp(positiveProp, pattern)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun pattern(name: String, pattern: DtoParser.AliasPatternContext): String {
+        val original = pattern.original
+        val replace = pattern.replacement?.text ?: ""
+        return if (pattern.prefix != null) {
+            if (original == null) {
+                "`${replace}${name.replaceFirstChar { it.uppercase() }}`"
+            } else {
+                "`${
+                    name.replaceFirst(
+                        original.text,
+                        replace
+                    )
+                }`"
+            }
+        } else if (pattern.suffix != null) {
+            if (original == null) {
+                "`${name}${replace}`"
+            } else {
+                "`${
+                    name.replaceFirst(
+                        original.text,
+                        replace
+                    )
+                }`"
+            }
+        } else {
+            if (original != null) {
+                "`${name.replaceFirst(original.text, replace)}`"
+            } else {
+                ""
             }
         }
     }

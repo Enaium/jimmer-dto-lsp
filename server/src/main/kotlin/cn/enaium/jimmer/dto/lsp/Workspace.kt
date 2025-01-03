@@ -53,7 +53,7 @@ data class Workspace(
                         })
                     )
                 )
-            }.get(20, TimeUnit.SECONDS)
+            }.get(5, TimeUnit.SECONDS)
         } catch (_: TimeoutException) {
             client?.notifyProgress(
                 ProgressParams(
@@ -65,7 +65,7 @@ data class Workspace(
             )
             client?.showMessage(MessageParams().apply {
                 message = "Resolve Dependencies timeout, please resolve dependencies manually"
-                type = MessageType.Error
+                type = MessageType.Warning
             })
         }
     }
