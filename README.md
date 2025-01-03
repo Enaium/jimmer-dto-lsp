@@ -18,6 +18,7 @@
 - Folding
 - Structure view
 - Format export and import
+- Hover for export, import, macro, prop, alias group etc.
 
 ## Implemented LSP features
 
@@ -51,6 +52,16 @@
 ![import annotation](https://s2.loli.net/2024/12/15/W6fSpoEUZXmguK8.gif)
 
 ![formatting export and import](https://s2.loli.net/2024/12/19/45Ja3uSgzhyCjYp.gif)
+
+![export package hover](https://s2.loli.net/2025/01/03/A57apRUf8VyvrQl.png)
+
+![import hover](https://s2.loli.net/2025/01/03/xVEL8l5kH7q3eOP.png)
+
+![macro hover](https://s2.loli.net/2025/01/03/1QRXJnE6i4FOvdI.png)
+
+![prop hover](https://s2.loli.net/2025/01/03/ayzH4lGgtUBWpSO.png)
+
+![alias group hover](https://s2.loli.net/2025/01/03/jD9vxHoeylE5kWc.png)
 
 ## Supported IDEs
 
@@ -112,9 +123,9 @@ In Windows your path should be like this:
   "X:\\path\\to\\your\\project": [
     "X:\\path\\to\\your\\xx.jar",
     //Jar classpath
-    "X:\\path\\to\\your\\project\\build\\classes\\kotlin\\main"
+    "X:\\path\\to\\your\\project\\build\\classes\\kotlin\\main",
     //Directory classpath
-  ]
+  ],
 }
 ```
 
@@ -125,9 +136,9 @@ In Linux or MacOS your path should be like this:
   "/path/to/your/project": [
     "/path/to/your/xx.jar",
     //Jar classpath
-    "/path/to/your/project/build/classes/kotlin/main"
+    "/path/to/your/project/build/classes/kotlin/main",
     //Directory classpath
-  ]
+  ],
 }
 ```
 
