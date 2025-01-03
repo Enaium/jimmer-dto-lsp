@@ -260,8 +260,8 @@ fun findClassNames(classpath: List<Path>): List<String> {
             while (entries.hasMoreElements()) {
                 val entry = entries.nextElement()
                 if (entry.isDirectory) continue
-                if (entry.name.endsWith(".class") && !entry
-                        .name.contains("$")
+                if (entry.name.endsWith(".class")
+                    && !listOf("META-INF", "module-info.class", "$").any { entry.name.contains(it) }
                 ) {
                     val name = entry.name.substringBeforeLast(".").replace("/", ".")
                     results.add(name)

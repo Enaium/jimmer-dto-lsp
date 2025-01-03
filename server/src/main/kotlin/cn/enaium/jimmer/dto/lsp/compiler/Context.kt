@@ -60,9 +60,7 @@ operator fun ClassLoader.get(name: String?): Class<*>? {
     }
     return try {
         loadClass(name)
-    } catch (e: ClassNotFoundException) {
-        return null
-    } catch (e: NoClassDefFoundError) {
+    } catch (_: Throwable) {
         return null
     }
 }
