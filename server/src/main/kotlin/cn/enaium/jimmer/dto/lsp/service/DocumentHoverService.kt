@@ -22,6 +22,8 @@ import cn.enaium.jimmer.dto.lsp.compiler.ImmutableProp
 import cn.enaium.jimmer.dto.lsp.utility.getProps
 import cn.enaium.jimmer.dto.lsp.utility.overlaps
 import cn.enaium.jimmer.dto.lsp.utility.position
+import cn.enaium.jimmer.dto.lsp.utility.type
+import org.antlr.v4.runtime.Token
 import org.babyfish.jimmer.dto.compiler.DtoParser
 import org.eclipse.lsp4j.*
 import java.util.concurrent.CompletableFuture
@@ -141,7 +143,55 @@ class DocumentHoverService(documentManager: DocumentManager) : DocumentServiceAd
         }
     }
 
+    private fun prop(token: Token, optional: Boolean = false, required: Boolean = false, negative: Boolean = false) {
+        val range = Range(
+            token.position(),
+            token.position(true)
+        )
+
+        if (range.overlaps(params.position)) {
+            val props = document.getProps(params.position)
+            val prop = props?.second?.find { prop -> prop.name == token.text } ?: return
+            hover = Hover(
+                MarkupContent(
+                    MarkupKind.MARKDOWN,
+                    """
+                        ## ${prop.name}
+                        Trace: `${props.first}.${prop.name}`
+                        
+                        From: `${prop.declaringType.name}`
+                        
+                        Type: `${prop.type().description}`
+                        
+                    """.trimIndent() + if (optional) {
+                        """
+                        ## Optional
+                        This property is optional
+                    """.trimIndent()
+                    } else if (required) {
+                        """
+                        ## Required
+                        This property is required
+                    """.trimIndent()
+                    } else if (negative) {
+                        """
+                        ## Negative
+                        This property is negative
+                    """.trimIndent()
+                    } else {
+                        ""
+                    }
+                ), range
+            )
+        }
+    }
+
     private fun positiveProp(positiveProp: DtoParser.PositivePropContext) {
+
+        positiveProp.props.forEach {
+            prop(it, optional = positiveProp.optional != null, required = positiveProp.required != null)
+        }
+
         positiveProp.dtoBody()?.also { dtoBody ->
             body(dtoBody)
         }
@@ -154,6 +204,9 @@ class DocumentHoverService(documentManager: DocumentManager) : DocumentServiceAd
             }
             prop.positiveProp()?.also { positiveProp ->
                 positiveProp(positiveProp)
+            }
+            prop.negativeProp()?.also { negativeProp ->
+                prop(negativeProp.prop, negative = true)
             }
         }
     }
