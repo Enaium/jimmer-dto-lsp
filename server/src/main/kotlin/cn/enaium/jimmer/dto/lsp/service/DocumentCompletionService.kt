@@ -126,14 +126,14 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
                 val realTimeTokens =
                     document.realTime.commonToken.tokens.filter { it.channel == DtoLexer.DEFAULT_TOKEN_CHANNEL }
 
-                fun completionClass(keyword: String, names: List<String>) {
+                fun completionClass(keyword: String, names: () -> List<String>) {
                     val currentLineTokens =
                         realTimeTokens.filter { it.line - 1 == params.position.line && it.type != DtoLexer.EOF }
                     if (currentLineTokens.size > 1 && currentLineTokens.first()?.text == keyword) {
                         val classTokens =
                             currentLineTokens.filterIndexed { index, _ -> index != 0 }
                         val className = classTokens.joinToString("") { it.text }
-                        names.forEach {
+                        names().forEach {
                             if (it.startsWith(className)) {
                                 completionItems.add(CompletionItem(it).apply {
                                     insertText = it.substring(className.length - classTokens.last().text.length)
@@ -145,11 +145,12 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
                     }
                 }
 
-                completionClass("export", findImmutableNames(document.realTime.context, document.realTime.classpath))
                 completionClass(
-                    "import",
-                    findClassNames(document.realTime.classpath) + findAnnotationNames(document.realTime.context)
-                )
+                    "export"
+                ) { findImmutableNames(document.realTime.context, document.realTime.classpath) }
+                completionClass(
+                    "import"
+                ) { findClassNames(document.realTime.classpath) + findAnnotationNames(document.realTime.context) }
 
                 val callTraceToRange = mutableMapOf<String, Pair<Token, Token>>()
                 val callTraceToProps = mutableMapOf<String, List<ImmutableProp>>()

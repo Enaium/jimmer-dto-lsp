@@ -17,6 +17,7 @@
 package cn.enaium.jimmer.dto.lsp.intellij.status
 
 import cn.enaium.jimmer.dto.lsp.intellij.Constants
+import cn.enaium.jimmer.dto.lsp.intellij.DtoFileType
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.DefaultActionGroup
@@ -56,5 +57,9 @@ class StatusBarItem(project: Project) : EditorBasedStatusBarPopup(project, false
         return WidgetState(Constants.DISPLAY, null, true).apply {
             icon = Constants.ICON
         }
+    }
+
+    override fun isEnabledForFile(file: VirtualFile?): Boolean {
+        return file?.fileType == DtoFileType
     }
 }
