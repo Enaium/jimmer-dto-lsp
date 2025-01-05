@@ -116,6 +116,6 @@ class ImmutableType(
     private val isMappedSuperclass: Boolean = immutableAnnoType == MappedSuperclass::class.qualifiedName
     val isEmbeddable: Boolean = immutableAnnoType == Embeddable::class.qualifiedName
     override val name: String = klass.simpleName
-    override val packageName: String = klass.`package`.name
+    override val packageName: String = klass.packageName
     override val qualifiedName: String = klass.name
 }

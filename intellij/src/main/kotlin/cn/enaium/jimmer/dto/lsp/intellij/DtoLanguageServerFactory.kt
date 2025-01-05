@@ -20,6 +20,7 @@ import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.project.Project
 import com.intellij.util.io.delete
 import com.redhat.devtools.lsp4ij.LanguageServerFactory
+import com.redhat.devtools.lsp4ij.server.JavaProcessCommandBuilder
 import com.redhat.devtools.lsp4ij.server.OSProcessStreamConnectionProvider
 import com.redhat.devtools.lsp4ij.server.StreamConnectionProvider
 import java.io.InputStream
@@ -55,10 +56,10 @@ class DtoLanguageServerFactory : LanguageServerFactory {
 
         return OSProcessStreamConnectionProvider(
             GeneralCommandLine(
-                "java",
-                "-cp",
-                localJarFile.absolutePathString(),
-                "cn.enaium.jimmer.dto.lsp.MainKt"
+                JavaProcessCommandBuilder(
+                    project,
+                    Constants.SERVER_ID,
+                ).setCp(localJarFile.absolutePathString()).create() + "cn.enaium.jimmer.dto.lsp.MainKt"
             )
         )
     }
