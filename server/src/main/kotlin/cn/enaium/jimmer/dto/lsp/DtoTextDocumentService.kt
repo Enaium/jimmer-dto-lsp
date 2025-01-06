@@ -32,6 +32,7 @@ class DtoTextDocumentService(workspace: Workspace) : TextDocumentService {
     private val documentSymbolService = DocumentSymbolService(documentManager)
     private val documentFormattingService = DocumentFormattingService(documentManager)
     private val documentHoverService = DocumentHoverService(documentManager)
+    private val documentDefinitionService = DocumentDefinitionService(documentManager)
 
     override fun didOpen(params: DidOpenTextDocumentParams) {
         documentSyncService.didOpen(params)
@@ -71,5 +72,9 @@ class DtoTextDocumentService(workspace: Workspace) : TextDocumentService {
 
     override fun hover(params: HoverParams): CompletableFuture<Hover?> {
         return documentHoverService.hover(params)
+    }
+
+    override fun definition(params: DefinitionParams): CompletableFuture<Either<List<Location>, List<LocationLink>>> {
+        return documentDefinitionService.definition(params)
     }
 }
