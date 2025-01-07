@@ -19,10 +19,7 @@ package cn.enaium.jimmer.dto.lsp.service
 import cn.enaium.jimmer.dto.lsp.DocumentManager
 import cn.enaium.jimmer.dto.lsp.DtoDocument
 import cn.enaium.jimmer.dto.lsp.compiler.ImmutableProp
-import cn.enaium.jimmer.dto.lsp.utility.getProps
-import cn.enaium.jimmer.dto.lsp.utility.overlaps
-import cn.enaium.jimmer.dto.lsp.utility.position
-import cn.enaium.jimmer.dto.lsp.utility.type
+import cn.enaium.jimmer.dto.lsp.utility.*
 import org.antlr.v4.runtime.Token
 import org.babyfish.jimmer.dto.compiler.DtoParser
 import org.eclipse.lsp4j.*
@@ -60,13 +57,7 @@ class DocumentHoverService(documentManager: DocumentManager) : DocumentServiceAd
                         `${exportStatement.typeParts.joinToString(".") { it.text }}`
                         ## Package
                         `${
-                            exportStatement.packageParts.let {
-                                if (it.isEmpty() && exportStatement.typeParts.size > 1) {
-                                    "${exportStatement.typeParts.dropLast(1).joinToString(".") { it.text }}.dto"
-                                } else {
-                                    it.joinToString(".") { it.text }
-                                }
-                            }
+                            exportStatement.getPackageName()
                         }`
                     """.trimIndent()
                     ), range

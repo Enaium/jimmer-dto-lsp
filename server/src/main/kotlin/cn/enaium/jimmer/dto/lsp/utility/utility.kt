@@ -27,6 +27,7 @@ import org.antlr.v4.runtime.Token
 import org.babyfish.jimmer.dto.compiler.Constants
 import org.babyfish.jimmer.dto.compiler.DtoLexer
 import org.babyfish.jimmer.dto.compiler.DtoParser
+import org.babyfish.jimmer.dto.compiler.DtoParser.ExportStatementContext
 import org.eclipse.lsp4j.Position
 import org.eclipse.lsp4j.Range
 import java.io.File
@@ -388,6 +389,16 @@ fun DtoDocument.getProps(position: Position): Pair<String, List<ImmutableProp>>?
     }.firstOrNull()?.key ?: return null
 
     return callTraceToProps[callTrace]?.let { callTrace to it }
+}
+
+fun ExportStatementContext.getPackageName(): String {
+    return this.packageParts.let {
+        if (it.isEmpty() && this.typeParts.size > 1) {
+            "${this.typeParts.dropLast(1).joinToString(".") { it.text }}.dto"
+        } else {
+            it.joinToString(".") { it.text }
+        }
+    }
 }
 
 val commonFuncNames = setOf("flat")
