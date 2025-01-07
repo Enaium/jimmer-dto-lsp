@@ -74,6 +74,7 @@ class DtoLanguageServer : LanguageServer {
             setDocumentFormattingProvider(true)
             setHoverProvider(true)
             setDefinitionProvider(true)
+            setWorkspaceSymbolProvider(true)
         }))
     }
 

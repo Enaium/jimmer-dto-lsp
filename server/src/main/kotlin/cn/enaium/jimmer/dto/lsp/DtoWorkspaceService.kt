@@ -16,10 +16,10 @@
 
 package cn.enaium.jimmer.dto.lsp
 
-import cn.enaium.jimmer.dto.lsp.service.WorkspaceExecuteCommand
-import org.eclipse.lsp4j.DidChangeConfigurationParams
-import org.eclipse.lsp4j.DidChangeWatchedFilesParams
-import org.eclipse.lsp4j.ExecuteCommandParams
+import cn.enaium.jimmer.dto.lsp.service.WorkspaceExecuteCommandService
+import cn.enaium.jimmer.dto.lsp.service.WorkspaceSymbolService
+import org.eclipse.lsp4j.*
+import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.services.WorkspaceService
 import java.util.concurrent.CompletableFuture
 
@@ -28,7 +28,8 @@ import java.util.concurrent.CompletableFuture
  */
 class DtoWorkspaceService(workspace: Workspace) : WorkspaceService {
 
-    private val executeCommand = WorkspaceExecuteCommand(workspace)
+    private val executeCommand = WorkspaceExecuteCommandService(workspace)
+    private val symbol = WorkspaceSymbolService(workspace)
 
     override fun didChangeConfiguration(params: DidChangeConfigurationParams) {
 
@@ -40,5 +41,9 @@ class DtoWorkspaceService(workspace: Workspace) : WorkspaceService {
 
     override fun executeCommand(params: ExecuteCommandParams): CompletableFuture<Any> {
         return executeCommand.executeCommand(params)
+    }
+
+    override fun symbol(params: WorkspaceSymbolParams): CompletableFuture<Either<List<SymbolInformation>, List<WorkspaceSymbol>>> {
+        return symbol.symbol(params)
     }
 }

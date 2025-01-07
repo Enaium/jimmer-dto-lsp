@@ -24,7 +24,7 @@ import java.util.concurrent.CompletableFuture
 /**
  * @author Enaium
  */
-class WorkspaceExecuteCommand(private val workspace: Workspace) : WorkspaceServiceAdapter(workspace) {
+class WorkspaceExecuteCommandService(private val workspace: Workspace) : WorkspaceServiceAdapter(workspace) {
     override fun executeCommand(params: ExecuteCommandParams): CompletableFuture<Any> {
         when (params.command) {
             CommandType.RESOLVE_DEPENDENCIES.command -> {
