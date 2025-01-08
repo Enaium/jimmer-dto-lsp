@@ -19,6 +19,8 @@
 - Structure view
 - Format export and import
 - Hover for export, import, macro, prop, alias group etc.
+- Go to definition
+- Find symbol
 
 ## Implemented LSP features
 
@@ -32,7 +34,9 @@
 - ✅ [textDocument/semanticTokens/full](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_semanticTokens_full).
 - ✅ [textDocument/documentSymbol](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_documentSymbol).
 - ✅ [textDocument/hover](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_hover).
+- ✅ [textDocument/definition](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_definition).
 - ✅ [workspace/executeCommand](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_executeCommand).
+- ✅ [workspace/symbol](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_symbol).
 - ✅ [$/progress](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#progress).
 
 ## Screenshots
@@ -62,6 +66,10 @@
 ![prop hover](https://s2.loli.net/2025/01/03/ayzH4lGgtUBWpSO.png)
 
 ![alias group hover](https://s2.loli.net/2025/01/03/jD9vxHoeylE5kWc.png)
+
+![go to definition](https://s2.loli.net/2025/01/08/3QoBxhJDfgZdvus.gif)
+
+![workspace symbol](https://s2.loli.net/2025/01/08/7VCLn8ZuSK9MTkA.gif)
 
 ## Supported IDEs
 
