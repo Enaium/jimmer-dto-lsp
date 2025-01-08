@@ -109,7 +109,7 @@ class DocumentHoverService(documentManager: DocumentManager) : DocumentServiceAd
         return CompletableFuture.completedFuture(hover)
     }
 
-    private fun macro(macro: DtoParser.MicroContext, pattern: DtoParser.AliasPatternContext? = null) {
+    private fun macro(macro: DtoParser.MacroContext, pattern: DtoParser.AliasPatternContext? = null) {
         val macroRange = Range(
             macro.start.position(),
             macro.stop.position(true)
@@ -221,7 +221,7 @@ class DocumentHoverService(documentManager: DocumentManager) : DocumentServiceAd
 
     private fun body(body: DtoParser.DtoBodyContext) {
         body.explicitProps.forEach { prop ->
-            prop.micro()?.also { macro ->
+            prop.macro()?.also { macro ->
                 macro(macro)
             }
             prop.positiveProp()?.also { positiveProp ->
@@ -233,8 +233,8 @@ class DocumentHoverService(documentManager: DocumentManager) : DocumentServiceAd
             prop.aliasGroup()?.also { aliasGroup ->
                 aliasGroup.pattern?.also { pattern ->
                     aliasGroup.props.forEach { alias ->
-                        alias.micro()?.also { micro ->
-                            macro(micro, pattern)
+                        alias.macro()?.also { macro ->
+                            macro(macro, pattern)
                         }
                         alias.positiveProp()?.also { positiveProp ->
                             positiveProp(positiveProp, pattern)

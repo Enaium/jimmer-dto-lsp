@@ -57,4 +57,8 @@ enum class TokenType(val id: Int, val literal: String) {
     RIGHT_BRACKET(DtoLexer.T__32, "']'"),
     DOUBLE_COLON(DtoLexer.T__33, "'::'"),
     CLASS(DtoLexer.T__34, "'class'");
+
+    fun literal(): String {
+        return literal.substring(1, literal.length - 1)
+    }
 }

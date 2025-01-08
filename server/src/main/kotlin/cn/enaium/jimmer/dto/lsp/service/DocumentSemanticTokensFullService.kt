@@ -218,7 +218,7 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
         }
     }
 
-    private fun macro(macro: DtoParser.MicroContext) {
+    private fun macro(macro: DtoParser.MacroContext) {
         addToken(macro.start, SemanticType.MACRO)
         addToken(macro.name, SemanticType.MACRO)
         macro.optional?.also { optional ->
@@ -265,7 +265,7 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
 
     private fun body(body: DtoParser.DtoBodyContext) {
         body.explicitProps.forEach { prop ->
-            prop.micro()?.also { macro ->
+            prop.macro()?.also { macro ->
                 macro(macro)
             }
             prop.positiveProp()?.also { positiveProp ->
@@ -291,8 +291,8 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
                     addToken(pattern.translator, SemanticType.FUNCTION)
                 }
                 aliasGroup.props.forEach { alias ->
-                    alias.micro()?.also { micro ->
-                        macro(micro)
+                    alias.macro()?.also { macro ->
+                        macro(macro)
                     }
                     alias.positiveProp()?.also { positiveProp ->
                         positiveProp(positiveProp)
