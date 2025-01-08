@@ -66,17 +66,32 @@ class DocumentDefinitionService(documentManager: DocumentManager) : DocumentServ
 
         ast.dtoTypes.forEach { dtoType ->
             if (dtoType.name.range().overlaps(params.position)) {
-                ast.exportStatement()?.also { exportStatement ->
-                    findProjectDir(URI.create(params.textDocument.uri).toPath())?.also { projectDir ->
-                        listOf("build", "target").forEach { out ->
-                            projectDir.resolve("$out/generated/ksp").toFile().listFiles()?.forEach { path ->
+                val packageName = ast.exportStatement()?.getPackageName()
+                    ?: document.rightTime.immutable?.packageName?.let { "$it.dto" }
+                    ?: return@forEach
+
+                findProjectDir(URI.create(params.textDocument.uri).toPath())?.also { projectDir ->
+                    listOf("build", "target").forEach { out ->
+                        projectDir.resolve("$out/generated/ksp").toFile().listFiles()?.forEach { path ->
+                            !path.isDirectory && return@forEach
+                            val source =
+                                path.resolve(
+                                    "kotlin/${packageName.replace(".", "/")}/${dtoType.name.text}.kt"
+                                )
+                            if (source.exists()) {
+                                locations.add(
+                                    Location(
+                                        source.toURI().toString(),
+                                        Range(Position(0, 0), Position(0, 0))
+                                    )
+                                )
+                            }
+                        }
+                        projectDir.resolve("$out/generated/sources/annotationProcessor/java").toFile().listFiles()
+                            ?.forEach { path ->
                                 !path.isDirectory && return@forEach
                                 val source =
-                                    path.resolve(
-                                        "kotlin/${
-                                            exportStatement.getPackageName().replace(".", "/")
-                                        }/${dtoType.name.text}.kt"
-                                    )
+                                    path.resolve("${packageName.replace(".", "/")}/${dtoType.name.text}.java")
                                 if (source.exists()) {
                                     locations.add(
                                         Location(
@@ -86,25 +101,6 @@ class DocumentDefinitionService(documentManager: DocumentManager) : DocumentServ
                                     )
                                 }
                             }
-                            projectDir.resolve("$out/generated/sources/annotationProcessor/java").toFile().listFiles()
-                                ?.forEach { path ->
-                                    !path.isDirectory && return@forEach
-                                    val source =
-                                        path.resolve(
-                                            "${
-                                                exportStatement.getPackageName().replace(".", "/")
-                                            }/${dtoType.name.text}.java"
-                                        )
-                                    if (source.exists()) {
-                                        locations.add(
-                                            Location(
-                                                source.toURI().toString(),
-                                                Range(Position(0, 0), Position(0, 0))
-                                            )
-                                        )
-                                    }
-                                }
-                        }
                     }
                 }
             }
