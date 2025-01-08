@@ -100,6 +100,21 @@ class WorkspaceSymbolService(val workspace: Workspace) : WorkspaceServiceAdapter
             )
         }
 
+        positiveProp.func?.also { func ->
+            workspaceSymbols.add(
+                WorkspaceSymbol(
+                    func.text,
+                    SymbolKind.Method,
+                    Either.forLeft(
+                        Location(
+                            dtoPath.toUri().toString(),
+                            func.range()
+                        )
+                    )
+                )
+            )
+        }
+
         positiveProp.dtoBody()?.also { dtoBody ->
             body(dtoPath, dtoBody)
         }
