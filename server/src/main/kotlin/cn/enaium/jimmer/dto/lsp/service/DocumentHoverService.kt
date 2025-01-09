@@ -74,13 +74,12 @@ class DocumentHoverService(documentManager: DocumentManager) : DocumentServiceAd
                 )
                 if (range.overlaps(params.position)) {
                     var types = if (importStatement.importedTypes.isEmpty()) {
-                        "`${mutableListOf(*parts.toTypedArray()).removeLast().text}`"
+                        "`${parts.last().text}`"
                     } else {
                         importStatement.importedTypes.joinToString(", ") { "`${it.text}`" }
                     }
                     var packageName = if (importStatement.importedTypes.isEmpty()) {
-                        parts.removeLast()
-                        parts.joinToString(".") { it.text }
+                        parts.subList(0, parts.size - 1).joinToString(".") { it.text }
                     } else {
                         importStatement.parts.joinToString(".") { it.text }
                     }
