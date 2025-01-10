@@ -128,8 +128,9 @@ class DocumentSyncService(private val workspace: Workspace, documentManager: Doc
                     uri,
                     DtoDocument(
                         content,
-                        DocumentContext(ast, lexer, token, context, immutableType, classpath, compile),
-                        DocumentContext(ast, lexer, token, context, immutableType, classpath, compile)
+                        context,
+                        DocumentContext(ast, lexer, token, immutableType, classpath, compile),
+                        DocumentContext(ast, lexer, token, immutableType, classpath, compile)
                     )
                 )
             } ?: run {
@@ -147,12 +148,13 @@ class DocumentSyncService(private val workspace: Workspace, documentManager: Doc
                     documentManager.getDocument(uri)
                         ?.copy(
                             content = content,
-                            realTime = DocumentContext(ast, lexer, token, context, classpath = classpath),
+                            realTime = DocumentContext(ast, lexer, token, classpath = classpath),
                         )
                         ?: DtoDocument(
                             content,
-                            DocumentContext(ast, lexer, token, context, classpath = classpath),
-                            DocumentContext(ast, lexer, token, context, classpath = classpath)
+                            context,
+                            DocumentContext(ast, lexer, token, classpath = classpath),
+                            DocumentContext(ast, lexer, token, classpath = classpath)
                         )
                 )
             }
@@ -173,11 +175,12 @@ class DocumentSyncService(private val workspace: Workspace, documentManager: Doc
                 documentManager.getDocument(uri)
                     ?.copy(
                         content = content,
-                        realTime = DocumentContext(ast, lexer, token, context, classpath = classpath),
+                        realTime = DocumentContext(ast, lexer, token, classpath = classpath),
                     ) ?: DtoDocument(
                     content,
-                    DocumentContext(ast, lexer, token, context, classpath = classpath),
-                    DocumentContext(ast, lexer, token, context, classpath = classpath)
+                    context,
+                    DocumentContext(ast, lexer, token, classpath = classpath),
+                    DocumentContext(ast, lexer, token, classpath = classpath)
                 )
             )
         }

@@ -27,6 +27,7 @@ import kotlin.io.path.relativeTo
 class Context(val loader: URLClassLoader) {
 
     private val typeMap = mutableMapOf<Class<*>, ImmutableType>()
+    var classNames = listOf<String>()
 
     fun ofType(klass: Class<*>): ImmutableType {
         return typeMap[klass] ?: ImmutableType(this, klass).also {

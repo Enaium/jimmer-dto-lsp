@@ -30,6 +30,7 @@ import java.nio.file.Path
  */
 data class DtoDocument(
     val content: String,
+    val context: Context,
     val realTime: DocumentContext,
     val rightTime: DocumentContext
 )
@@ -38,7 +39,6 @@ data class DocumentContext(
     val ast: DtoContext,
     val lexer: DtoLexer,
     val commonToken: CommonTokenStream,
-    val context: Context,
     val immutable: ImmutableType? = null,
     val classpath: List<Path> = emptyList(),
     val dtoTypes: List<DtoType<ImmutableType, ImmutableProp>> = emptyList()

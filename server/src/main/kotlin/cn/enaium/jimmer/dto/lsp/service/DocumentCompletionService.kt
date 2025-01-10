@@ -66,7 +66,7 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
 
             "@" -> run {
                 var sort = 0
-                val annotationNames = findAnnotationNames(document.realTime.context, document.realTime.classpath)
+                val annotationNames = findAnnotationNames(document.context, document.realTime.classpath)
                 return CompletableFuture.completedFuture(
                     Either.forLeft(annotationNames.map {
                         CompletionItem(it.let {
@@ -147,10 +147,10 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
 
                 completionClass(
                     "export"
-                ) { findImmutableNames(document.realTime.context, document.realTime.classpath) }
+                ) { findImmutableNames(document.context, document.realTime.classpath) }
                 completionClass(
                     "import"
-                ) { findClassNames(document.realTime.classpath) + findAnnotationNames(document.realTime.context) }
+                ) { document.context.findClassNames(document.realTime.classpath) + findAnnotationNames(document.context) }
 
                 val callTraceToRange = mutableMapOf<String, Pair<Token, Token>>()
                 val callTraceToProps = mutableMapOf<String, List<ImmutableProp>>()
@@ -283,7 +283,7 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
 
     private fun findImmutableNames(context: Context, classpath: List<Path>): List<String> {
         val results = mutableListOf<String>()
-        findClassNames(classpath).forEach { name ->
+        context.findClassNames(classpath).forEach { name ->
             context.loader[name]?.run {
                 if (this.annotations.any {
                         listOf(
@@ -302,7 +302,7 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
 
     private fun findAnnotationNames(context: Context, classpath: List<Path> = emptyList()): List<String> {
         val results = mutableListOf<String>()
-        findClassNames(classpath).forEach { name ->
+        context.findClassNames(classpath).forEach { name ->
             context.loader[name]?.run {
                 if (this.isAnnotation) {
                     results.add(name)
