@@ -234,9 +234,6 @@ class DocumentFormattingService(documentManager: DocumentManager) : DocumentServ
         typeRef.qualifiedName()?.also { qualifiedName ->
             text += qualifiedName.parts.joinToString(TokenType.DOT.literal()) { it.text }
         }
-        typeRef.optional?.also { optional ->
-            text += TokenType.QUESTION_MARK.literal()
-        }
         typeRef.genericArguments.takeIf { it.isNotEmpty() }?.also { genericArguments ->
             text += TokenType.LESS_THAN.literal()
             genericArguments.forEach { genericArgument ->
@@ -247,6 +244,9 @@ class DocumentFormattingService(documentManager: DocumentManager) : DocumentServ
                 }
             }
             text += TokenType.GREATER_THAN.literal()
+        }
+        typeRef.optional?.also { optional ->
+            text += TokenType.QUESTION_MARK.literal()
         }
         return text
     }
