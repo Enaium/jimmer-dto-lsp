@@ -35,8 +35,9 @@ class DtoLanguageServer : LanguageServer {
 
         params.workspaceFolders?.forEach {
             workspace.folders.add(it.uri)
-            workspace.resolveDependencies()
         }
+
+        workspace.resolveDependencies()
 
         return CompletableFuture.completedFuture(InitializeResult(ServerCapabilities().apply {
             workspace = WorkspaceServerCapabilities().apply {

@@ -81,7 +81,7 @@
 
 ## Requirements
 
-- You need to install JDK 21 or later in your system environment, but make sure your jdk version is compatible with your
+- You need to install JDK 17 or later in your system environment, but make sure your jdk version is compatible with your
   project
 - Your project should have `gradlew` or `mvnw` file otherwise you need to install Gradle or Maven in your
   system environment
@@ -137,7 +137,7 @@ In Windows your path should be like this:
 }
 ```
 
-In Linux or MacOS your path should be like this:
+In Linux or macOS your path should be like this:
 
 ```json5
 {
