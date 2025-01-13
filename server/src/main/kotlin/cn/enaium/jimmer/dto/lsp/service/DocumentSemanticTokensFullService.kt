@@ -23,6 +23,7 @@ import cn.enaium.jimmer.dto.lsp.utility.literal
 import cn.enaium.jimmer.dto.lsp.utility.range
 import org.antlr.v4.runtime.Token
 import org.babyfish.jimmer.dto.compiler.DtoLexer
+import org.babyfish.jimmer.dto.compiler.DtoModifier
 import org.babyfish.jimmer.dto.compiler.DtoParser
 import org.babyfish.jimmer.dto.compiler.DtoParser.AnnotationContext
 import org.eclipse.lsp4j.SemanticTokens
@@ -44,7 +45,7 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
 
         var previousLine = 0
         var previousChar = 0
-        val tokens = document.rightTime.commonToken.tokens
+        val tokens = document.realTime.commonToken.tokens
         tokens.forEach { token ->
             when (token.type) {
                 DtoLexer.DocComment, DtoLexer.BlockComment, DtoLexer.LineComment -> {
@@ -80,7 +81,7 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
             }
         }
 
-        val ast = document.rightTime.ast
+        val ast = document.realTime.ast
         ast.exportStatement()?.also { exportStatement ->
             val keyword = exportStatement.start
             if (keyword.literal() == TokenType.EXPORT.literal) {
@@ -117,7 +118,9 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
         ast.dtoTypes.forEach { dtoType ->
             annotations(dtoType.annotations)
             dtoType.modifiers.forEach { modifier ->
-                addToken(modifier, SemanticType.KEYWORD)
+                if (DtoModifier.entries.map { it.name.lowercase() }.contains(modifier.text)) {
+                    addToken(modifier, SemanticType.KEYWORD)
+                }
             }
             addToken(dtoType.name, SemanticType.STRUCT)
             dtoType.superInterfaces.forEach { superInterface ->

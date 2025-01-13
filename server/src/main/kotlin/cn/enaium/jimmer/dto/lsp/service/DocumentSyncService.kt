@@ -106,6 +106,21 @@ class DocumentSyncService(private val workspace: Workspace, documentManager: Doc
         parser.addErrorListener(baseErrorListener)
         val ast = parser.dto()
 
+        documentManager.openOrUpdateDocument(
+            uri,
+            documentManager.getDocument(uri)
+                ?.copy(
+                    content = content,
+                    realTime = DocumentContext(ast, lexer, token, classpath = classpath),
+                )
+                ?: DtoDocument(
+                    content,
+                    context,
+                    DocumentContext(ast, lexer, token, classpath = classpath),
+                    DocumentContext(ast, lexer, token, classpath = classpath)
+                )
+        )
+
         try {
             val documentDtoCompiler =
                 DocumentDtoCompiler(DtoFile(object : OsFile {
@@ -143,20 +158,6 @@ class DocumentSyncService(private val workspace: Workspace, documentManager: Doc
                             "No immutable type '${documentDtoCompiler.sourceTypeName}' found. Please build the project or use the export statement."
                     })
                 })
-                documentManager.openOrUpdateDocument(
-                    uri,
-                    documentManager.getDocument(uri)
-                        ?.copy(
-                            content = content,
-                            realTime = DocumentContext(ast, lexer, token, classpath = classpath),
-                        )
-                        ?: DtoDocument(
-                            content,
-                            context,
-                            DocumentContext(ast, lexer, token, classpath = classpath),
-                            DocumentContext(ast, lexer, token, classpath = classpath)
-                        )
-                )
             }
         } catch (dtoAst: DtoAstException) {
             client?.publishDiagnostics(PublishDiagnosticsParams().apply {
