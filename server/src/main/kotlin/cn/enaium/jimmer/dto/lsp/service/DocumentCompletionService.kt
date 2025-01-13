@@ -19,7 +19,6 @@ package cn.enaium.jimmer.dto.lsp.service
 import cn.enaium.jimmer.dto.lsp.DocumentManager
 import cn.enaium.jimmer.dto.lsp.Workspace
 import cn.enaium.jimmer.dto.lsp.compiler.ImmutableProp
-import cn.enaium.jimmer.dto.lsp.logger
 import cn.enaium.jimmer.dto.lsp.utility.*
 import org.antlr.v4.runtime.Token
 import org.babyfish.jimmer.dto.compiler.DtoLexer
@@ -141,12 +140,8 @@ class DocumentCompletionService(private val workspace: Workspace, documentManage
                     }
                 }
 
-                completionClass(
-                    "export"
-                ) { workspace.findImmutableNames() }
-                completionClass(
-                    "import"
-                ) { workspace.findClassNames() }
+                completionClass(TokenType.EXPORT.literal()) { workspace.findImmutableNames() }
+                completionClass(TokenType.IMPORT.literal()) { workspace.findClassNames() }
 
                 val callTraceToRange = mutableMapOf<String, Pair<Token, Token>>()
                 val callTraceToProps = mutableMapOf<String, List<ImmutableProp>>()
@@ -252,14 +247,14 @@ class DocumentCompletionService(private val workspace: Workspace, documentManage
                 }
 
                 if (!isInBlock) {
-                    if (rightTimeTokens.none { it.text == "export" }) {
+                    if (realTimeTokens.none { it.text == "export" }) {
                         completionItems.add(CompletionItem("export").apply {
                             kind = CompletionItemKind.Keyword
                             sortText = "${sort++}"
                         })
                     }
 
-                    if (rightTimeTokens.none { it.text == "package" }) {
+                    if (realTimeTokens.none { it.text == "package" }) {
                         completionItems.add(CompletionItem("package").apply {
                             kind = CompletionItemKind.Keyword
                             sortText = "${sort++}"
