@@ -27,6 +27,13 @@
 
 ![20241227221201](https://s2.loli.net/2024/12/27/gfpZQewNoVuHiym.png)
 
+### Immutable not found
+
+- Please check your intellij's jdk version, the plugin will use the jdk version in the intellij idea, please make sure
+  the jdk version is compatible with your project.
+
+![20250113205709](https://s2.loli.net/2025/01/13/ZFofEjPI8zGyMWw.png)
+
 ### Plguin conflict
 
 ![750bc317d5af0f7c46791257f832175a](https://s2.loli.net/2024/12/27/cZDw8aFdqLo6RGx.png)
