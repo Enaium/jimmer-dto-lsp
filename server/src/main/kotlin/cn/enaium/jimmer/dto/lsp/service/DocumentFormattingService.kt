@@ -31,10 +31,11 @@ import java.util.concurrent.CompletableFuture
  */
 class DocumentFormattingService(documentManager: DocumentManager) : DocumentServiceAdapter(documentManager) {
 
+    private val table = "    "
     private val space = " "
     private val enter = "\n"
 
-    val textEdits = mutableListOf<TextEdit>()
+    private val textEdits = mutableListOf<TextEdit>()
 
     override fun formatting(params: DocumentFormattingParams): CompletableFuture<List<TextEdit>> {
         val document = documentManager.getDocument(params.textDocument.uri)
@@ -63,12 +64,16 @@ class DocumentFormattingService(documentManager: DocumentManager) : DocumentServ
 
         if (exportStatement.typeParts.isNotEmpty()) {
             stop = exportStatement.typeParts.last().position(textLength = true)
-            text += "export ${exportStatement.typeParts.joinToString(".") { it.text }}"
+            text += "${TokenType.EXPORT.literal()} ${exportStatement.typeParts.joinToString(TokenType.DOT.literal()) { it.text }}"
         }
 
         if (exportStatement.packageParts.isNotEmpty()) {
             stop = exportStatement.packageParts.last().position(textLength = true)
-            text += "\n    -> package ${exportStatement.packageParts.joinToString(".") { it.text }}"
+            text += "\n    ${TokenType.ARROW.literal()} ${TokenType.PACKAGE.literal()} ${
+                exportStatement.packageParts.joinToString(
+                    TokenType.DOT.literal()
+                ) { it.text }
+            }"
         }
 
         textEdits.add(TextEdit(Range(start, stop), text))
@@ -81,10 +86,12 @@ class DocumentFormattingService(documentManager: DocumentManager) : DocumentServ
             importStatements.forEach { importStatement ->
                 val parts = importStatement.parts
                 if (importStatement.importedTypes.isEmpty()) {
-                    imports.add(parts.subList(0, parts.size - 1).joinToString(".") { it.text } to parts.last().text)
+                    imports.add(
+                        parts.subList(0, parts.size - 1)
+                            .joinToString(TokenType.DOT.literal()) { it.text } to parts.last().text)
                 } else {
                     importStatement.importedTypes.forEach { importedType ->
-                        imports.add(parts.joinToString(".") { it.text } to importedType.text)
+                        imports.add(parts.joinToString(TokenType.DOT.literal()) { it.text } to importedType.text)
                     }
                 }
             }
@@ -96,11 +103,15 @@ class DocumentFormattingService(documentManager: DocumentManager) : DocumentServ
                         importStatements.last().stop.position(textLength = true)
                     ),
                     imports.groupBy({ it.first }) { it.second }.map {
-                        "import ${it.key}.${
+                        "${TokenType.IMPORT.literal()} ${it.key}.${
                             if (it.value.count() == 1) {
                                 it.value.first()
                             } else {
-                                it.value.joinToString(", ", "{ ", " }")
+                                it.value.joinToString(
+                                    "${TokenType.COMMA.literal()}$space",
+                                    "${TokenType.LEFT_BRACE.literal()}$space",
+                                    "$space${TokenType.RIGHT_BRACE.literal()}"
+                                )
                             }
                         }"
                     }.joinToString(enter)
@@ -118,7 +129,7 @@ class DocumentFormattingService(documentManager: DocumentManager) : DocumentServ
         text += enter
         text += indent
         text += annotationArrayValue.annotationSingleValue()
-            .joinToString("${TokenType.COMMA.literal()}$enter$indent") { annotationSingleValue(it, "    ") }
+            .joinToString("${TokenType.COMMA.literal()}$enter$indent") { annotationSingleValue(it, table) }
         text += enter
         text += indent
         text += TokenType.RIGHT_BRACKET.literal()
@@ -229,8 +240,8 @@ class DocumentFormattingService(documentManager: DocumentManager) : DocumentServ
         return text
     }
 
-    private fun typeRef(typeRef: DtoParser.TypeRefContext, text: String): String {
-        var text = text
+    private fun typeRef(typeRef: DtoParser.TypeRefContext, indent: String): String {
+        var text = indent
         typeRef.qualifiedName()?.also { qualifiedName ->
             text += qualifiedName.parts.joinToString(TokenType.DOT.literal()) { it.text }
         }
@@ -277,18 +288,18 @@ class DocumentFormattingService(documentManager: DocumentManager) : DocumentServ
         }
         positiveProp.annotation()?.also { annotations ->
             annotations.filter { !positiveProp.bodyAnnotations.contains(it) }.takeIf { it.isNotEmpty() }
-                ?.also { annotations ->
-                    text += annotations.joinToString("$enter$indent") { annotation(it, indent) }
+                ?.also { annotationsWithoutBody ->
+                    text += annotationsWithoutBody.joinToString("$enter$indent") { annotation(it, indent) }
                     text += enter
                     text += indent
                 }
         }
         positiveProp.modifier?.also { modifier ->
-            text += "${modifier.text}"
+            text += modifier.text
             text += space
         }
         positiveProp.func?.also {
-            text += "${positiveProp.func.text}"
+            text += positiveProp.func.text
             positiveProp.flag?.also { flag ->
                 text += flag.text
             }
@@ -334,7 +345,7 @@ class DocumentFormattingService(documentManager: DocumentManager) : DocumentServ
             text += space
             text += TokenType.LEFT_BRACE.literal()
             text += enter
-            text += enumBody(enumBody, "$indent    ")
+            text += enumBody(enumBody, "$indent$table")
             text += enter
             text += indent
             text += TokenType.RIGHT_BRACE.literal()
@@ -442,19 +453,19 @@ class DocumentFormattingService(documentManager: DocumentManager) : DocumentServ
         val explicitProps = dtoBody.explicitProps
         explicitProps.takeIf { it.isNotEmpty() }?.forEach { explicitProp ->
             explicitProp.positiveProp()?.also { positiveProp ->
-                text += positiveProp(positiveProp, "$indent    ")
+                text += positiveProp(positiveProp, "$indent$table")
             }
             explicitProp.userProp()?.also { userProp ->
-                text += userProp(userProp, "$indent    ")
+                text += userProp(userProp, "$indent$table")
             }
             explicitProp.negativeProp()?.also { negativeProp ->
-                text += negativeProp(negativeProp, "$indent    ")
+                text += negativeProp(negativeProp, "$indent$table")
             }
             explicitProp.macro()?.also { macro ->
-                text += macro(macro, "$indent    ")
+                text += macro(macro, "$indent$table")
             }
             explicitProp.aliasGroup()?.also { aliasGroup ->
-                text += aliasGroup(aliasGroup, "$indent    ")
+                text += aliasGroup(aliasGroup, "$indent$table")
             }
             if (explicitProp != explicitProps.last()) {
                 text += enter
@@ -478,17 +489,15 @@ class DocumentFormattingService(documentManager: DocumentManager) : DocumentServ
             text += doc.text
             text += enter
         }
-        dtoType.annotation()?.also { annotations ->
-            annotations.takeIf { it.isNotEmpty() }?.also { annotations ->
-                text += annotations.joinToString(enter) { annotation(it, "") }
-                text += enter
-            }
+        dtoType.annotation()?.takeIf { it.isNotEmpty() }?.also { annotations ->
+            text += annotations.joinToString(enter) { annotation(it, "") }
+            text += enter
         }
         dtoType.modifiers.forEach { modifier ->
-            text += "${modifier.text}"
+            text += modifier.text
             text += space
         }
-        text += "${dtoType.name.text}"
+        text += dtoType.name.text
         dtoType.superInterfaces.takeIf { it.isNotEmpty() }?.also { superInterfaces ->
             text += space
             text += "${TokenType.IMPLEMENTS.literal()} ${

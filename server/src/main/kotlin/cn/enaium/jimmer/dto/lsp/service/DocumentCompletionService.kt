@@ -236,9 +236,9 @@ class DocumentCompletionService(private val workspace: Workspace, documentManage
                 }
 
                 completionItems += (listOf(
-                    "as",
-                    "implements",
-                    "class"
+                    TokenType.AS.literal(),
+                    TokenType.IMPLEMENTS.literal(),
+                    TokenType.CLASS.literal(),
                 ) + DtoModifier.entries.map { it.name.lowercase() }).map {
                     CompletionItem(it).apply {
                         kind = CompletionItemKind.Keyword
@@ -247,21 +247,21 @@ class DocumentCompletionService(private val workspace: Workspace, documentManage
                 }
 
                 if (!isInBlock) {
-                    if (realTimeTokens.none { it.text == "export" }) {
-                        completionItems.add(CompletionItem("export").apply {
+                    if (realTimeTokens.none { it.text == TokenType.EXPORT.literal() }) {
+                        completionItems.add(CompletionItem(TokenType.EXPORT.literal()).apply {
                             kind = CompletionItemKind.Keyword
                             sortText = "${sort++}"
                         })
                     }
 
-                    if (realTimeTokens.none { it.text == "package" }) {
-                        completionItems.add(CompletionItem("package").apply {
+                    if (realTimeTokens.none { it.text == TokenType.PACKAGE.literal() }) {
+                        completionItems.add(CompletionItem(TokenType.PACKAGE.literal()).apply {
                             kind = CompletionItemKind.Keyword
                             sortText = "${sort++}"
                         })
                     }
 
-                    completionItems.add(CompletionItem("import").apply {
+                    completionItems.add(CompletionItem(TokenType.IMPORT.literal()).apply {
                         kind = CompletionItemKind.Keyword
                         sortText = "${sort++}"
                     })
