@@ -76,35 +76,41 @@ data class Workspace(
                 type = MessageType.Warning
             })
         }
-        indexClasses()
+        indexClasses(true)
     }
 
     private val classCache = mutableMapOf<String, Class<*>>()
     private val immutableCache = mutableMapOf<String, Class<*>>()
     private val annotationCache = mutableMapOf<String, Class<*>>()
 
-    private fun findClasspath(): List<Path> {
-        return (dependencies.values
-                + folders.map { findClasspath(URI.create(it).toPath()) }
-                + folders.map { findSubprojects(URI.create(it).toPath()) }.flatten().map { findClasspath(it) }
-                ).flatten()
+    private fun findClasspath(fully: Boolean): List<Path> {
+        return (if (fully) {
+            (dependencies.values
+                    + folders.map { findClasspath(URI.create(it).toPath()) }
+                    + folders.map { findSubprojects(URI.create(it).toPath()) }.flatten().map { findClasspath(it) })
+        } else {
+            folders.map { findSubprojects(URI.create(it).toPath()) }.flatten().map { findClasspath(it) }
+        }).flatten()
     }
 
-    fun indexClasses() {
+    fun indexClasses(fully: Boolean) {
         val token = "Index Classes"
         client?.createProgress(WorkDoneProgressCreateParams(Either.forLeft(token)))
         client?.notifyProgress(ProgressParams(Either.forLeft(token), Either.forLeft(WorkDoneProgressBegin().apply {
             title = "$token in progress"
             cancellable = false
         })))
-        classCache.clear()
-        immutableCache.clear()
-        annotationCache.clear()
 
-        val classpath = findClasspath()
+        val classpath = findClasspath(fully)
         val loader = URLClassLoader(classpath.map { it.toUri().toURL() }.toTypedArray())
-        val classNames = findClassNames(classpath)
 
+        if (fully) {
+            classCache.clear()
+            immutableCache.clear()
+            annotationCache.clear()
+        }
+
+        val classNames = findClassNames(classpath)
         classNames.forEach { name ->
             try {
                 loader[name]?.run {

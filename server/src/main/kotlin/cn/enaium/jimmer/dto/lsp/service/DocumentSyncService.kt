@@ -58,7 +58,7 @@ class DocumentSyncService(private val workspace: Workspace, documentManager: Doc
 
     private fun validate(content: String, uri: String, type: Type) {
         if (type == Type.SAVE) {
-            workspace.indexClasses()
+            workspace.indexClasses(false)
         }
 
         val path = URI.create(uri).toPath()
