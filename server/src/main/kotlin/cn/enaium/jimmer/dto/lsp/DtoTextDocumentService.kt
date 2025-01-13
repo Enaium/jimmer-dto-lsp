@@ -28,7 +28,7 @@ class DtoTextDocumentService(workspace: Workspace) : TextDocumentService {
     private val documentSyncService = DocumentSyncService(workspace, documentManager)
     private val documentSemanticTokensFullService = DocumentSemanticTokensFullService(documentManager)
     private val documentFoldingRangeService = DocumentFoldingRangeService(documentManager)
-    private val documentCompletionService = DocumentCompletionService(documentManager)
+    private val documentCompletionService = DocumentCompletionService(workspace, documentManager)
     private val documentSymbolService = DocumentSymbolService(documentManager)
     private val documentFormattingService = DocumentFormattingService(documentManager)
     private val documentHoverService = DocumentHoverService(documentManager)

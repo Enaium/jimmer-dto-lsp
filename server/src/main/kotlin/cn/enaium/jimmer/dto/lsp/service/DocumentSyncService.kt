@@ -20,8 +20,6 @@ import cn.enaium.jimmer.dto.lsp.*
 import cn.enaium.jimmer.dto.lsp.compiler.Context
 import cn.enaium.jimmer.dto.lsp.compiler.DocumentDtoCompiler
 import cn.enaium.jimmer.dto.lsp.compiler.ImmutableType
-import cn.enaium.jimmer.dto.lsp.utility.findClasspath
-import cn.enaium.jimmer.dto.lsp.utility.findDependenciesByFile
 import cn.enaium.jimmer.dto.lsp.utility.findProjectDir
 import cn.enaium.jimmer.dto.lsp.utility.toFile
 import org.antlr.v4.runtime.*
@@ -29,9 +27,6 @@ import org.babyfish.jimmer.dto.compiler.*
 import org.eclipse.lsp4j.*
 import java.io.Reader
 import java.net.URI
-import java.net.URLClassLoader
-import java.nio.file.Path
-import kotlin.io.path.name
 import kotlin.io.path.toPath
 
 /**
@@ -62,21 +57,13 @@ class DocumentSyncService(private val workspace: Workspace, documentManager: Doc
     }
 
     private fun validate(content: String, uri: String, type: Type) {
+        if (type == Type.SAVE) {
+            workspace.indexClasses()
+        }
+
         val path = URI.create(uri).toPath()
         val projectDir = findProjectDir(path)
-        val classpath = mutableListOf<Path>()
-
-        projectDir?.also {
-            classpath += (findClasspath(it)
-                    + findDependenciesByFile(it)
-                    + workspace.dependencies.getOrDefault(projectDir.name, emptyList()))
-        } ?: run {
-            workspace.folders.forEach workspaceFolder@{ workspaceFolder ->
-                val wf = URI.create(workspaceFolder).toPath()
-                classpath += findClasspath(wf) + findDependenciesByFile(wf)
-            }
-        }
-        val context = Context(URLClassLoader(classpath.map { it.toUri().toURL() }.toTypedArray()))
+        val context = Context(workspace)
         val lexer = DtoLexer(CharStreams.fromString(content))
         val baseErrorListener = object : BaseErrorListener() {
             override fun syntaxError(
@@ -111,13 +98,13 @@ class DocumentSyncService(private val workspace: Workspace, documentManager: Doc
             documentManager.getDocument(uri)
                 ?.copy(
                     content = content,
-                    realTime = DocumentContext(ast, lexer, token, classpath = classpath),
+                    realTime = DocumentContext(ast, lexer, token),
                 )
                 ?: DtoDocument(
                     content,
                     context,
-                    DocumentContext(ast, lexer, token, classpath = classpath),
-                    DocumentContext(ast, lexer, token, classpath = classpath)
+                    DocumentContext(ast, lexer, token),
+                    DocumentContext(ast, lexer, token)
                 )
         )
 
@@ -144,8 +131,8 @@ class DocumentSyncService(private val workspace: Workspace, documentManager: Doc
                     DtoDocument(
                         content,
                         context,
-                        DocumentContext(ast, lexer, token, immutableType, classpath, compile),
-                        DocumentContext(ast, lexer, token, immutableType, classpath, compile)
+                        DocumentContext(ast, lexer, token, immutableType, compile),
+                        DocumentContext(ast, lexer, token, immutableType, compile)
                     )
                 )
             } ?: run {
@@ -176,12 +163,12 @@ class DocumentSyncService(private val workspace: Workspace, documentManager: Doc
                 documentManager.getDocument(uri)
                     ?.copy(
                         content = content,
-                        realTime = DocumentContext(ast, lexer, token, classpath = classpath),
+                        realTime = DocumentContext(ast, lexer, token),
                     ) ?: DtoDocument(
                     content,
                     context,
-                    DocumentContext(ast, lexer, token, classpath = classpath),
-                    DocumentContext(ast, lexer, token, classpath = classpath)
+                    DocumentContext(ast, lexer, token),
+                    DocumentContext(ast, lexer, token)
                 )
             )
         }

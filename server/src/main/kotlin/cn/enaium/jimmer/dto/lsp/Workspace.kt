@@ -16,10 +16,18 @@
 
 package cn.enaium.jimmer.dto.lsp
 
+import cn.enaium.jimmer.dto.lsp.utility.findClassNames
+import cn.enaium.jimmer.dto.lsp.utility.findClasspath
 import cn.enaium.jimmer.dto.lsp.utility.findDependenciesByCommand
+import cn.enaium.jimmer.dto.lsp.utility.findSubprojects
+import org.babyfish.jimmer.Immutable
+import org.babyfish.jimmer.sql.Embeddable
+import org.babyfish.jimmer.sql.Entity
+import org.babyfish.jimmer.sql.MappedSuperclass
 import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import java.net.URI
+import java.net.URLClassLoader
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
@@ -67,6 +75,100 @@ data class Workspace(
                 message = "Resolve Dependencies timeout, please resolve dependencies manually"
                 type = MessageType.Warning
             })
+        }
+        indexClasses()
+    }
+
+    private val classCache = mutableMapOf<String, Class<*>>()
+    private val immutableCache = mutableMapOf<String, Class<*>>()
+    private val annotationCache = mutableMapOf<String, Class<*>>()
+
+    private fun findClasspath(): List<Path> {
+        return (dependencies.values
+                + folders.map { findClasspath(URI.create(it).toPath()) }
+                + folders.map { findSubprojects(URI.create(it).toPath()) }.flatten().map { findClasspath(it) }
+                ).flatten()
+    }
+
+    fun indexClasses() {
+        val token = "Index Classes"
+        client?.createProgress(WorkDoneProgressCreateParams(Either.forLeft(token)))
+        client?.notifyProgress(ProgressParams(Either.forLeft(token), Either.forLeft(WorkDoneProgressBegin().apply {
+            title = "$token in progress"
+            cancellable = false
+        })))
+        classCache.clear()
+        immutableCache.clear()
+        annotationCache.clear()
+
+        val classpath = findClasspath()
+        val loader = URLClassLoader(classpath.map { it.toUri().toURL() }.toTypedArray())
+        val classNames = findClassNames(classpath)
+
+        classNames.forEach { name ->
+            try {
+                loader[name]?.run {
+                    if (this.isAnnotation) {
+                        annotationCache[name] = this
+                    } else if (this.annotations.any {
+                            listOf(
+                                Entity::class,
+                                MappedSuperclass::class,
+                                Embeddable::class,
+                                Immutable::class
+                            ).contains(it.annotationClass)
+                        }) {
+                        immutableCache[name] = this
+                    } else {
+                        classCache[name] = this
+                    }
+                }
+            } catch (_: Throwable) {
+            }
+        }
+
+        client?.notifyProgress(
+            ProgressParams(
+                Either.forLeft(token),
+                Either.forLeft(WorkDoneProgressEnd().apply {
+                    message = "$token done"
+                })
+            )
+        )
+    }
+
+    fun findAnnotationNames(): List<String> {
+        return annotationCache.values.map { it.name }
+    }
+
+    fun findImmutableNames(): List<String> {
+        return immutableCache.values.map { it.name }
+    }
+
+    fun findClassNames(): List<String> {
+        return classCache.values.map { it.name }
+    }
+
+    fun findClass(name: String): Class<*>? {
+        return classCache[name]
+    }
+
+    fun findImmutable(name: String): Class<*>? {
+        return immutableCache[name]
+    }
+
+    fun findAnnotation(name: String): Class<*>? {
+        return annotationCache[name]
+    }
+
+    operator fun ClassLoader.get(name: String?): Class<*>? {
+        if (name == null) {
+            return null
+        }
+        return try {
+            loadClass(name)
+        } catch (_: Throwable) {
+            return null
         }
     }
 }

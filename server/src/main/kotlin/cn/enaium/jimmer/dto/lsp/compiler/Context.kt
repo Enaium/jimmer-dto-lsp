@@ -16,18 +16,17 @@
 
 package cn.enaium.jimmer.dto.lsp.compiler
 
+import cn.enaium.jimmer.dto.lsp.Workspace
 import java.io.File
-import java.net.URLClassLoader
 import java.nio.file.Path
 import kotlin.io.path.relativeTo
 
 /**
  * @author Enaium
  */
-class Context(val loader: URLClassLoader) {
+class Context(val workspace: Workspace) {
 
     private val typeMap = mutableMapOf<Class<*>, ImmutableType>()
-    var classNames = listOf<String>()
 
     fun ofType(klass: Class<*>): ImmutableType {
         return typeMap[klass] ?: ImmutableType(this, klass).also {
@@ -36,7 +35,7 @@ class Context(val loader: URLClassLoader) {
     }
 
     fun findImmutableClass(projectDir: Path?, dto: Path, name: String): Class<*>? {
-        var immutableClass = loader[name]
+        var immutableClass = workspace.findImmutable(name)
 
         if (immutableClass == null && projectDir != null) {
             val relativeTo = dto.parent.relativeTo(projectDir)
@@ -44,7 +43,7 @@ class Context(val loader: URLClassLoader) {
             path.substringAfter('.')
             path.substringAfter('.')
             for (i in 0 until path.count { it == '.' }) {
-                immutableClass = loader[path]
+                immutableClass = workspace.findImmutable(path)
                 if (immutableClass != null) {
                     break
                 }
@@ -52,16 +51,5 @@ class Context(val loader: URLClassLoader) {
             }
         }
         return immutableClass
-    }
-}
-
-operator fun ClassLoader.get(name: String?): Class<*>? {
-    if (name == null) {
-        return null
-    }
-    return try {
-        loadClass(name)
-    } catch (_: Throwable) {
-        return null
     }
 }

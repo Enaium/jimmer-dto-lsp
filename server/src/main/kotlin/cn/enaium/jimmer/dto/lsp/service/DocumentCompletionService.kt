@@ -17,26 +17,22 @@
 package cn.enaium.jimmer.dto.lsp.service
 
 import cn.enaium.jimmer.dto.lsp.DocumentManager
-import cn.enaium.jimmer.dto.lsp.compiler.Context
+import cn.enaium.jimmer.dto.lsp.Workspace
 import cn.enaium.jimmer.dto.lsp.compiler.ImmutableProp
-import cn.enaium.jimmer.dto.lsp.compiler.get
+import cn.enaium.jimmer.dto.lsp.logger
 import cn.enaium.jimmer.dto.lsp.utility.*
 import org.antlr.v4.runtime.Token
-import org.babyfish.jimmer.Immutable
 import org.babyfish.jimmer.dto.compiler.DtoLexer
 import org.babyfish.jimmer.dto.compiler.DtoModifier
-import org.babyfish.jimmer.sql.Embeddable
-import org.babyfish.jimmer.sql.Entity
-import org.babyfish.jimmer.sql.MappedSuperclass
 import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
-import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 
 /**
  * @author Enaium
  */
-class DocumentCompletionService(documentManager: DocumentManager) : DocumentServiceAdapter(documentManager) {
+class DocumentCompletionService(private val workspace: Workspace, documentManager: DocumentManager) :
+    DocumentServiceAdapter(documentManager) {
     override fun completion(params: CompletionParams): CompletableFuture<Either<List<CompletionItem>, CompletionList>> {
         val document = documentManager.getDocument(params.textDocument.uri)
             ?: return CompletableFuture.completedFuture(Either.forLeft(emptyList()))
@@ -66,7 +62,7 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
 
             "@" -> run {
                 var sort = 0
-                val annotationNames = findAnnotationNames(document.context, document.realTime.classpath)
+                val annotationNames = workspace.findAnnotationNames()
                 return CompletableFuture.completedFuture(
                     Either.forLeft(annotationNames.map {
                         CompletionItem(it.let {
@@ -147,10 +143,10 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
 
                 completionClass(
                     "export"
-                ) { findImmutableNames(document.context, document.realTime.classpath) }
+                ) { workspace.findImmutableNames() }
                 completionClass(
                     "import"
-                ) { document.context.findClassNames(document.realTime.classpath) + findAnnotationNames(document.context) }
+                ) { workspace.findClassNames() }
 
                 val callTraceToRange = mutableMapOf<String, Pair<Token, Token>>()
                 val callTraceToProps = mutableMapOf<String, List<ImmutableProp>>()
@@ -171,7 +167,7 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
                 val isInBlock = props != null
 
                 if (isInBlock) {
-                    completionItems += props.second.map { prop ->
+                    completionItems += props!!.second.map { prop ->
                         CompletionItem(prop.name).apply {
                             kind = CompletionItemKind.Field
                             val type = prop.type()
@@ -279,37 +275,6 @@ class DocumentCompletionService(documentManager: DocumentManager) : DocumentServ
             }
         }
         return CompletableFuture.completedFuture(Either.forLeft(emptyList()))
-    }
-
-    private fun findImmutableNames(context: Context, classpath: List<Path>): List<String> {
-        val results = mutableListOf<String>()
-        context.findClassNames(classpath).forEach { name ->
-            context.loader[name]?.run {
-                if (this.annotations.any {
-                        listOf(
-                            Entity::class,
-                            MappedSuperclass::class,
-                            Embeddable::class,
-                            Immutable::class
-                        ).contains(it.annotationClass)
-                    }) {
-                    results.add(name)
-                }
-            }
-        }
-        return results
-    }
-
-    private fun findAnnotationNames(context: Context, classpath: List<Path> = emptyList()): List<String> {
-        val results = mutableListOf<String>()
-        context.findClassNames(classpath).forEach { name ->
-            context.loader[name]?.run {
-                if (this.isAnnotation) {
-                    results.add(name)
-                }
-            }
-        }
-        return results
     }
 
     private fun getCommentRange(tokens: List<Token>): List<Range> {

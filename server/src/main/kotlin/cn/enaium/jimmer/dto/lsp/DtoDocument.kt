@@ -23,7 +23,6 @@ import org.antlr.v4.runtime.CommonTokenStream
 import org.babyfish.jimmer.dto.compiler.DtoLexer
 import org.babyfish.jimmer.dto.compiler.DtoParser.DtoContext
 import org.babyfish.jimmer.dto.compiler.DtoType
-import java.nio.file.Path
 
 /**
  * @author Enaium
@@ -40,6 +39,5 @@ data class DocumentContext(
     val lexer: DtoLexer,
     val commonToken: CommonTokenStream,
     val immutable: ImmutableType? = null,
-    val classpath: List<Path> = emptyList(),
     val dtoTypes: List<DtoType<ImmutableType, ImmutableProp>> = emptyList()
 )

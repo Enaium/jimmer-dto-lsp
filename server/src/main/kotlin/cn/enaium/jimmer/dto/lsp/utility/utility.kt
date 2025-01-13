@@ -18,7 +18,6 @@ package cn.enaium.jimmer.dto.lsp.utility
 
 import cn.enaium.jimmer.dto.lsp.DtoDocument
 import cn.enaium.jimmer.dto.lsp.Main
-import cn.enaium.jimmer.dto.lsp.compiler.Context
 import cn.enaium.jimmer.dto.lsp.compiler.ImmutableProp
 import cn.enaium.jimmer.dto.lsp.compiler.ImmutableType
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -247,11 +246,7 @@ private fun findSubprojects(rootProject: Path, results: MutableList<Path>, level
     }
 }
 
-fun Context.findClassNames(classpath: List<Path>): List<String> {
-    if (this.classNames.isNotEmpty()) {
-        return this.classNames
-    }
-
+fun findClassNames(classpath: List<Path>): List<String> {
     val results = mutableListOf<String>()
     classpath.forEach { cp ->
         if (cp.isDirectory()) {
@@ -276,9 +271,7 @@ fun Context.findClassNames(classpath: List<Path>): List<String> {
             jar.close()
         }
     }
-    return results.also {
-        this.classNames = it
-    }
+    return results
 }
 
 fun URI.toFile(): File {
