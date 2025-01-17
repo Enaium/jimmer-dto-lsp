@@ -22,8 +22,8 @@ import com.intellij.openapi.fileTypes.LanguageFileType
  * @author Enaium
  */
 object DtoFileType : LanguageFileType(Constants.DTO) {
-    override fun getName(): String = Constants.DISPLAY
-    override fun getDescription(): String = Constants.DISPLAY
+    override fun getName(): String = Constants.LANGUAGE_NAME
+    override fun getDescription(): String = Constants.LANGUAGE_NAME
     override fun getDefaultExtension(): String = Constants.EXTENSION
     override fun getIcon() = Constants.ICON
 }

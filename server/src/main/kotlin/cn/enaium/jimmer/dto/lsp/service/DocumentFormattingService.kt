@@ -17,6 +17,8 @@
 package cn.enaium.jimmer.dto.lsp.service
 
 import cn.enaium.jimmer.dto.lsp.DocumentManager
+import cn.enaium.jimmer.dto.lsp.Setting
+import cn.enaium.jimmer.dto.lsp.Workspace
 import cn.enaium.jimmer.dto.lsp.utility.TokenType
 import cn.enaium.jimmer.dto.lsp.utility.position
 import org.babyfish.jimmer.dto.compiler.DtoParser
@@ -29,7 +31,8 @@ import java.util.concurrent.CompletableFuture
 /**
  * @author Enaium
  */
-class DocumentFormattingService(documentManager: DocumentManager) : DocumentServiceAdapter(documentManager) {
+class DocumentFormattingService(val workspace: Workspace, documentManager: DocumentManager) :
+    DocumentServiceAdapter(documentManager) {
 
     private val table = "    "
     private val space = " "
@@ -435,7 +438,9 @@ class DocumentFormattingService(documentManager: DocumentManager) : DocumentServ
                 }
                 if (prop != aliasGroupProp.last()) {
                     text += enter
-                    text += enter
+                    if (workspace.setting.formatting.propsSpaceLine == Setting.Formatting.PropsSpaceLine.ALWAYS) {
+                        text += enter
+                    }
                 }
             }
             text += enter
@@ -469,7 +474,21 @@ class DocumentFormattingService(documentManager: DocumentManager) : DocumentServ
             }
             if (explicitProp != explicitProps.last()) {
                 text += enter
-                text += enter
+                when (workspace.setting.formatting.propsSpaceLine) {
+                    Setting.Formatting.PropsSpaceLine.ALWAYS -> {
+                        text += enter
+                    }
+
+                    Setting.Formatting.PropsSpaceLine.HAS_ANNOTATION -> {
+                        explicitProp.positiveProp()?.also { positiveProp ->
+                            positiveProp.annotations.takeIf { it.isNotEmpty() }?.also {
+                                text += enter
+                            }
+                        }
+                    }
+
+                    Setting.Formatting.PropsSpaceLine.NEVER -> {}
+                }
             }
         }
         text += enter

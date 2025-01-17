@@ -28,7 +28,7 @@ class WorkspaceExecuteCommandService(private val workspace: Workspace) : Workspa
     override fun executeCommand(params: ExecuteCommandParams): CompletableFuture<Any> {
         when (params.command) {
             CommandType.RESOLVE_DEPENDENCIES.command -> {
-                workspace.resolveDependencies()
+                workspace.resolve()
             }
         }
         return CompletableFuture.completedFuture(null)

@@ -33,7 +33,7 @@ import com.intellij.openapi.wm.impl.status.EditorBasedStatusBarPopup
  */
 class StatusBarItem(project: Project) : EditorBasedStatusBarPopup(project, false) {
     override fun ID(): String {
-        return "${Constants.ID}BarItem"
+        return "${Constants.LANGUAGE_ID}BarItem"
     }
 
     override fun createInstance(project: Project): StatusBarWidget {
@@ -45,7 +45,7 @@ class StatusBarItem(project: Project) : EditorBasedStatusBarPopup(project, false
         val resolveDependencies =
             ActionManager.getInstance().getAction("cn.enaium.jimmer.dto.lsp.intellij.action.ResolveDependencies")
         return JBPopupFactory.getInstance().createActionGroupPopup(
-            Constants.DISPLAY,
+            Constants.NAME,
             DefaultActionGroup(listOf(viewLogs, resolveDependencies)),
             context,
             JBPopupFactory.ActionSelectionAid.SPEEDSEARCH,
@@ -54,7 +54,7 @@ class StatusBarItem(project: Project) : EditorBasedStatusBarPopup(project, false
     }
 
     override fun getWidgetState(file: VirtualFile?): WidgetState {
-        return WidgetState(Constants.DISPLAY, null, true).apply {
+        return WidgetState(Constants.NAME, null, true).apply {
             icon = Constants.ICON
         }
     }

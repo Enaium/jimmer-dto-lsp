@@ -16,10 +16,14 @@
 
 package cn.enaium.jimmer.dto.lsp.intellij
 
+import cn.enaium.jimmer.dto.lsp.intellij.setting.PluginSetting
+import com.google.gson.FieldNamingPolicy
+import com.google.gson.GsonBuilder
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.project.Project
 import com.intellij.util.io.delete
 import com.redhat.devtools.lsp4ij.LanguageServerFactory
+import com.redhat.devtools.lsp4ij.client.LanguageClientImpl
 import com.redhat.devtools.lsp4ij.server.JavaProcessCommandBuilder
 import com.redhat.devtools.lsp4ij.server.OSProcessStreamConnectionProvider
 import com.redhat.devtools.lsp4ij.server.StreamConnectionProvider
@@ -32,7 +36,7 @@ import kotlin.io.path.*
  */
 class DtoLanguageServerFactory : LanguageServerFactory {
     override fun createConnectionProvider(project: Project): StreamConnectionProvider {
-        val dir = Path(System.getProperty("user.home")).resolve(Constants.HOME)
+        val dir = Path(System.getProperty("user.home")).resolve(Constants.ID)
         if (!dir.exists()) {
             dir.createDirectories()
         }
@@ -53,14 +57,27 @@ class DtoLanguageServerFactory : LanguageServerFactory {
         if (!localJarFile.exists()) {
             throw RuntimeException("Local server jar not found")
         }
-
+        val settings = PluginSetting.INSTANCE.state
         return OSProcessStreamConnectionProvider(
             GeneralCommandLine(
-                JavaProcessCommandBuilder(
-                    project,
-                    Constants.SERVER_ID,
-                ).setCp(localJarFile.absolutePathString()).create() + "cn.enaium.jimmer.dto.lsp.MainKt"
+                if (settings.useJetBrainsRuntime) {
+                    JavaProcessCommandBuilder(
+                        project,
+                        Constants.SERVER_ID,
+                    ).setCp(localJarFile.absolutePathString()).create() + "cn.enaium.jimmer.dto.lsp.MainKt"
+                } else {
+                    listOf("java", "-cp", localJarFile.absolutePathString(), "cn.enaium.jimmer.dto.lsp.MainKt")
+                }
             )
         )
+    }
+
+    override fun createLanguageClient(project: Project): LanguageClientImpl {
+        return object : LanguageClientImpl(project) {
+            override fun createSettings(): Any {
+                return GsonBuilder().setFieldNamingStrategy(FieldNamingPolicy.UPPER_CAMEL_CASE).create()
+                    .toJsonTree(PluginSetting.INSTANCE.state).asJsonObject
+            }
+        }
     }
 }

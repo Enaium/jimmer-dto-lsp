@@ -21,6 +21,6 @@ import com.intellij.lang.Language
 /**
  * @author Enaium
  */
-class Dto : Language(Constants.ID) {
-    override fun getDisplayName(): String = Constants.DISPLAY
+class Dto : Language(Constants.LANGUAGE_ID) {
+    override fun getDisplayName(): String = Constants.LANGUAGE_NAME
 }

@@ -30,7 +30,7 @@ class DtoTextDocumentService(workspace: Workspace) : TextDocumentService {
     private val documentFoldingRangeService = DocumentFoldingRangeService(documentManager)
     private val documentCompletionService = DocumentCompletionService(workspace, documentManager)
     private val documentSymbolService = DocumentSymbolService(documentManager)
-    private val documentFormattingService = DocumentFormattingService(documentManager)
+    private val documentFormattingService = DocumentFormattingService(workspace, documentManager)
     private val documentHoverService = DocumentHoverService(documentManager)
     private val documentDefinitionService = DocumentDefinitionService(documentManager)
 

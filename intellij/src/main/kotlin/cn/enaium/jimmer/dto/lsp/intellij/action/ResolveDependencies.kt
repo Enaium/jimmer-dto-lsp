@@ -16,6 +16,7 @@
 
 package cn.enaium.jimmer.dto.lsp.intellij.action
 
+import cn.enaium.jimmer.dto.lsp.intellij.Constants
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.redhat.devtools.lsp4ij.commands.CommandExecutor
@@ -35,7 +36,7 @@ class ResolveDependencies : AnAction() {
                         "jimmer.dto.resolveDependencies"
                     ), it
                 ).apply {
-                    preferredLanguageServerId = "jimmer-dto"
+                    preferredLanguageServerId = Constants.SERVER_ID
                 })
         }
     }

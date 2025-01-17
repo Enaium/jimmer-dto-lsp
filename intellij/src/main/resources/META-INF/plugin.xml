@@ -17,6 +17,11 @@
                   extensions="dto" fieldName="INSTANCE"/>
         <statusBarWidgetFactory implementation="cn.enaium.jimmer.dto.lsp.intellij.status.StatusBarItemFactory"
                                 id="cn.enaium.jimmer.dto.lsp.intellij.status.StatusBarItemFactory"/>
+        <applicationService serviceImplementation="cn.enaium.jimmer.dto.lsp.intellij.setting.PluginSetting"/>
+        <applicationConfigurable parentId="tools"
+                                 instance="cn.enaium.jimmer.dto.lsp.intellij.setting.SettingConfigurable"
+                                 id="cn.enaium.jimmer.dto.lsp.intellij.setting.SettingConfigurable"
+                                 displayName="Jimmer DTO LSP"/>
     </extensions>
     <extensions defaultExtensionNs="com.redhat.devtools.lsp4ij">
         <server id="jimmer-dto" name="Jimmer DTO"

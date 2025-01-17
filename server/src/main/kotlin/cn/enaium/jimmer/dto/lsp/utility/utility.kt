@@ -102,8 +102,8 @@ private fun findClasspath(path: Path, results: MutableList<Path>) {
     }
 }
 
-fun findDependenciesByFile(project: Path): MutableList<Path> {
-    val results = mutableListOf<Path>()
+fun findDependenciesByConfiguration(project: Path): Map<String, List<Path>> {
+    val results = mutableMapOf<String, List<Path>>()
     val lspHome = Main::class.java.protectionDomain.codeSource.location.toURI().toPath().parent
     lspHome.resolve("dependencies.json").takeIf { it.exists() }?.also {
         val dependenciesJson = ObjectMapper().readTree(it.toFile())
@@ -116,7 +116,7 @@ fun findDependenciesByFile(project: Path): MutableList<Path> {
         }]?.forEach { dependency ->
             Path(dependency.asText()).also { path ->
                 if (path.exists()) {
-                    results.add(path)
+                    results[project.name] = findClasspath(path)
                 }
             }
         }
@@ -404,3 +404,5 @@ fun ExportStatementContext.getPackageName(): String {
 val commonFuncNames = setOf("flat")
 val qbeFuncNames = Constants.QBE_FUNC_NAMES + commonFuncNames
 val normalFuncNames = setOf("id") + commonFuncNames
+val Main.Companion.location: Path
+    get() = Main::class.java.protectionDomain.codeSource.location.toURI().toPath()

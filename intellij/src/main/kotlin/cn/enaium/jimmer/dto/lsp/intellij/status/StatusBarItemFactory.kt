@@ -26,11 +26,11 @@ import com.intellij.openapi.wm.impl.status.widget.StatusBarEditorBasedWidgetFact
  */
 class StatusBarItemFactory : StatusBarEditorBasedWidgetFactory() {
     override fun getDisplayName(): String {
-        return Constants.DISPLAY
+        return Constants.NAME
     }
 
     override fun getId(): String {
-        return "${Constants.ID}StatusBarFactory"
+        return "${Constants.LANGUAGE_ID}StatusBarFactory"
     }
 
     override fun createWidget(project: Project): StatusBarWidget {

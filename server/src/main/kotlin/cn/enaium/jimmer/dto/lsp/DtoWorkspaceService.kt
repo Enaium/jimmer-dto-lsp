@@ -18,6 +18,9 @@ package cn.enaium.jimmer.dto.lsp
 
 import cn.enaium.jimmer.dto.lsp.service.WorkspaceExecuteCommandService
 import cn.enaium.jimmer.dto.lsp.service.WorkspaceSymbolService
+import cn.enaium.jimmer.dto.lsp.utility.location
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.services.WorkspaceService
@@ -26,13 +29,16 @@ import java.util.concurrent.CompletableFuture
 /**
  * @author Enaium
  */
-class DtoWorkspaceService(workspace: Workspace) : WorkspaceService {
-
+class DtoWorkspaceService(val workspace: Workspace) : WorkspaceService {
     private val executeCommand = WorkspaceExecuteCommandService(workspace)
     private val symbol = WorkspaceSymbolService(workspace)
 
     override fun didChangeConfiguration(params: DidChangeConfigurationParams) {
-
+        val settings = params.settings ?: return
+        workspace.setting = jacksonObjectMapper().setPropertyNamingStrategy(PropertyNamingStrategies.UPPER_CAMEL_CASE)
+            .readValue(settings.toString(), Setting::class.java)
+        val settingFile = Main.location.parent.resolve("settings.json")
+        workspace.setting.save(settingFile)
     }
 
     override fun didChangeWatchedFiles(params: DidChangeWatchedFilesParams) {

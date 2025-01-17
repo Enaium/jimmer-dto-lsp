@@ -18,6 +18,10 @@
 
 ![20241227220910](https://s2.loli.net/2024/12/27/Npz8HLXx7cRC65j.png)
 
+## Settings
+
+![20250116232205](https://s2.loli.net/2025/01/16/MBbm1uXcOrCdIkp.png)
+
 ## FAQ
 
 ### Plguin not work

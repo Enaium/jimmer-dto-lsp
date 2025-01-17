@@ -39,7 +39,9 @@ fun start(input: InputStream, output: OutputStream) {
     launcher.startListening()
 }
 
-class Main
+class Main {
+    companion object
+}
 
 val logger: Logger = Logger.getLogger("JimmerDtoLanguageServer")
 var client: LanguageClient? = null

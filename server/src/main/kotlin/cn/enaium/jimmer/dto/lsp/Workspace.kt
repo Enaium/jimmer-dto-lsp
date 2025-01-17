@@ -16,10 +16,7 @@
 
 package cn.enaium.jimmer.dto.lsp
 
-import cn.enaium.jimmer.dto.lsp.utility.findClassNames
-import cn.enaium.jimmer.dto.lsp.utility.findClasspath
-import cn.enaium.jimmer.dto.lsp.utility.findDependenciesByCommand
-import cn.enaium.jimmer.dto.lsp.utility.findSubprojects
+import cn.enaium.jimmer.dto.lsp.utility.*
 import org.babyfish.jimmer.Immutable
 import org.babyfish.jimmer.sql.Embeddable
 import org.babyfish.jimmer.sql.Entity
@@ -38,11 +35,24 @@ import kotlin.io.path.toPath
  * @author Enaium
  */
 data class Workspace(
+    var setting: Setting = Setting(),
     val folders: MutableList<String> = mutableListOf(),
     val dependencies: MutableMap<String, List<Path>> = mutableMapOf()
 ) {
-    fun resolveDependencies() {
-        val token = "Resolve Dependencies"
+    fun resolve() {
+        if (setting.classpath.findBuilder) {
+            findBuilder()
+        }
+        if (setting.classpath.findConfiguration) {
+            findConfiguration()
+        }
+        if (setting.classpath.findOtherProject) {
+            indexClasses(true)
+        }
+    }
+
+    private fun findBuilder() {
+        val token = "Find Dependencies By Command"
         client?.createProgress(WorkDoneProgressCreateParams(Either.forLeft(token)))
         client?.notifyProgress(ProgressParams(Either.forLeft(token), Either.forLeft(WorkDoneProgressBegin().apply {
             title = "$token in progress"
@@ -76,7 +86,26 @@ data class Workspace(
                 type = MessageType.Warning
             })
         }
-        indexClasses(true)
+    }
+
+    private fun findConfiguration() {
+        val token = "Find Dependencies By Configuration"
+        client?.createProgress(WorkDoneProgressCreateParams(Either.forLeft(token)))
+        client?.notifyProgress(ProgressParams(Either.forLeft(token), Either.forLeft(WorkDoneProgressBegin().apply {
+            title = "$token in progress"
+            cancellable = false
+        })))
+        folders.forEach {
+            dependencies += findDependenciesByConfiguration(URI.create(it).toPath())
+        }
+        client?.notifyProgress(
+            ProgressParams(
+                Either.forLeft(token),
+                Either.forLeft(WorkDoneProgressEnd().apply {
+                    message = "$token done"
+                })
+            )
+        )
     }
 
     private val classCache = mutableMapOf<String, Class<*>>()

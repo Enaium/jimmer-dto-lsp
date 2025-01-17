@@ -18,11 +18,13 @@ package cn.enaium.jimmer.dto.lsp
 
 import cn.enaium.jimmer.dto.lsp.utility.CommandType
 import cn.enaium.jimmer.dto.lsp.utility.SemanticType
+import cn.enaium.jimmer.dto.lsp.utility.location
 import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.services.LanguageServer
 import org.eclipse.lsp4j.services.TextDocumentService
 import org.eclipse.lsp4j.services.WorkspaceService
 import java.util.concurrent.CompletableFuture
+import kotlin.io.path.exists
 
 /**
  * @author Enaium
@@ -33,11 +35,19 @@ class DtoLanguageServer : LanguageServer {
 
     override fun initialize(params: InitializeParams): CompletableFuture<InitializeResult> {
 
+        val settingFile = Main.location.parent.resolve("settings.json")
+
+        if (settingFile.exists()) {
+            workspace.setting = Setting.read(settingFile)
+        } else {
+            workspace.setting.save(settingFile)
+        }
+
         params.workspaceFolders?.forEach {
             workspace.folders.add(it.uri)
         }
 
-        workspace.resolveDependencies()
+        workspace.resolve()
 
         return CompletableFuture.completedFuture(InitializeResult(ServerCapabilities().apply {
             workspace = WorkspaceServerCapabilities().apply {
