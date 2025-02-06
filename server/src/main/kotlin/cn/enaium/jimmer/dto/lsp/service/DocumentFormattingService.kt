@@ -21,6 +21,7 @@ import cn.enaium.jimmer.dto.lsp.Setting
 import cn.enaium.jimmer.dto.lsp.Workspace
 import cn.enaium.jimmer.dto.lsp.utility.TokenType
 import cn.enaium.jimmer.dto.lsp.utility.position
+import org.antlr.v4.runtime.Token
 import org.babyfish.jimmer.dto.compiler.DtoParser
 import org.eclipse.lsp4j.DocumentFormattingParams
 import org.eclipse.lsp4j.Position
@@ -34,16 +35,20 @@ import java.util.concurrent.CompletableFuture
 class DocumentFormattingService(val workspace: Workspace, documentManager: DocumentManager) :
     DocumentServiceAdapter(documentManager) {
 
-    private val table = "    "
+    private val tab = "    "
     private val space = " "
     private val enter = "\n"
 
     private val textEdits = mutableListOf<TextEdit>()
 
+    private val tokens = mutableListOf<Token>()
+
     override fun formatting(params: DocumentFormattingParams): CompletableFuture<List<TextEdit>> {
         val document = documentManager.getDocument(params.textDocument.uri)
             ?: return CompletableFuture.completedFuture(emptyList())
         textEdits.clear()
+        tokens.clear()
+        tokens.addAll(document.realTime.commonToken.tokens)
 
         val ast = document.realTime.ast
         ast.exportStatement()?.also { exportStatement ->
@@ -132,7 +137,7 @@ class DocumentFormattingService(val workspace: Workspace, documentManager: Docum
         text += enter
         text += indent
         text += annotationArrayValue.annotationSingleValue()
-            .joinToString("${TokenType.COMMA.literal()}$enter$indent") { annotationSingleValue(it, table) }
+            .joinToString("${TokenType.COMMA.literal()}$enter$indent") { annotationSingleValue(it, tab) }
         text += enter
         text += indent
         text += TokenType.RIGHT_BRACKET.literal()
@@ -282,12 +287,155 @@ class DocumentFormattingService(val workspace: Workspace, documentManager: Docum
         return text
     }
 
+    private fun where(where: DtoParser.WhereContext): String {
+        var text = tokens.filter { it.startIndex >= where.start.startIndex && it.stopIndex <= where.stop.stopIndex }
+            .joinToString("") { it.text }
+        return text
+    }
+
+    private fun orderByItem(orderByItem: DtoParser.OrderByItemContext): String {
+        var text = ""
+        orderByItem.propPath()?.also { propPath ->
+            text += propPath.parts.joinToString(TokenType.DOT.literal()) { it.text }
+        }
+        return text
+    }
+
+    private fun orderBy(orderBy: DtoParser.OrderByContext): String {
+        var text = ""
+        text += orderBy.start.text
+        text += TokenType.LEFT_PARENTHESIS.literal()
+        orderBy.orderByItem()?.takeIf { it.isNotEmpty() }?.also { orderByItems ->
+            text += orderByItems.joinToString("${TokenType.COMMA.literal()}$space") { orderByItem(it) }
+        }
+        text += TokenType.RIGHT_PARENTHESIS.literal()
+        return text
+    }
+
+    private fun filter(filter: DtoParser.FilterContext): String {
+        var text = ""
+        text += filter.start.text
+        text += TokenType.LEFT_PARENTHESIS.literal()
+        filter.qualifiedName()?.parts?.also { parts ->
+            text += parts.joinToString(TokenType.DOT.literal()) { it.text }
+        }
+        text += TokenType.RIGHT_PARENTHESIS.literal()
+        return text
+    }
+
+    private fun recursion(recursion: DtoParser.RecursionContext): String {
+        var text = ""
+        text += recursion.start.text
+        text += TokenType.LEFT_PARENTHESIS.literal()
+        recursion.qualifiedName()?.parts?.also { parts ->
+            text += parts.joinToString(TokenType.DOT.literal()) { it.text }
+        }
+        text += TokenType.RIGHT_PARENTHESIS.literal()
+        return text
+    }
+
+    private fun fetchType(fetchType: DtoParser.FetchTypeContext): String {
+        var text = ""
+        text += fetchType.start.text
+        text += TokenType.LEFT_PARENTHESIS.literal()
+        fetchType.fetchMode?.also { fetchMode ->
+            text += fetchMode.text
+        }
+        text += TokenType.RIGHT_PARENTHESIS.literal()
+        return text
+    }
+
+    private fun limit(limit: DtoParser.LimitContext): String {
+        var text = ""
+        text += limit.start.text
+        text += TokenType.LEFT_PARENTHESIS.literal()
+        limit.IntegerLiteral()?.also { integerLiteral ->
+            text += integerLiteral.text
+        }
+        text += TokenType.RIGHT_PARENTHESIS.literal()
+        return text
+    }
+
+    private fun offset(offset: DtoParser.OffsetContext): String {
+        var text = ""
+        text += offset.start.text
+        text += TokenType.LEFT_PARENTHESIS.literal()
+        offset.IntegerLiteral()?.also { integerLiteral ->
+            text += integerLiteral.text
+        }
+        text += TokenType.RIGHT_PARENTHESIS.literal()
+        return text
+    }
+
+    private fun batch(batch: DtoParser.BatchContext): String {
+        var text = ""
+        text += batch.start.text
+        text += TokenType.LEFT_PARENTHESIS.literal()
+        batch.IntegerLiteral()?.also { integerLiteral ->
+            text += integerLiteral.text
+        }
+        text += TokenType.RIGHT_PARENTHESIS.literal()
+        return text
+    }
+
+    private fun recursionDepth(recursionDepth: DtoParser.RecursionDepthContext): String {
+        var text = ""
+        text += recursionDepth.start.text
+        text += TokenType.LEFT_PARENTHESIS.literal()
+        recursionDepth.IntegerLiteral()?.also { integerLiteral ->
+            text += integerLiteral.text
+        }
+        text += TokenType.RIGHT_PARENTHESIS.literal()
+        return text
+    }
+
+    private fun configuration(configuration: DtoParser.ConfigurationContext): String {
+        var text = ""
+        configuration.where()?.also { where ->
+            text += where(where)
+        }
+        configuration.orderBy()?.also { orderBy ->
+            text += orderBy(orderBy)
+        }
+        configuration.filter()?.also { filter ->
+            text += filter(filter)
+        }
+        configuration.recursion()?.also { recursion ->
+            text += recursion(recursion)
+        }
+        configuration.fetchType()?.also { fetchType ->
+            text += fetchType(fetchType)
+        }
+        configuration.limit()?.also { limit ->
+            text += limit(limit)
+        }
+        configuration.offset()?.also { offset ->
+            text += offset(offset)
+        }
+        configuration.batch()?.also { batch ->
+            text += batch(batch)
+        }
+        configuration.recursionDepth()?.also { recursionDepth ->
+            text += recursionDepth(recursionDepth)
+        }
+        if (workspace.setting.formatting.propsSpaceLine == Setting.Formatting.PropsSpaceLine.ALWAYS) {
+            text += enter
+        }
+        return text
+    }
+
     private fun positiveProp(positiveProp: DtoParser.PositivePropContext, indent: String): String {
         var text = indent
         positiveProp.doc?.also { doc ->
             text += doc.text
             text += enter
             text += indent
+        }
+        positiveProp.configuration()?.forEach { configuration ->
+            text += configuration(configuration)
+            text += enter
+            text += indent
+
         }
         positiveProp.annotation()?.also { annotations ->
             annotations.filter { !positiveProp.bodyAnnotations.contains(it) }.takeIf { it.isNotEmpty() }
@@ -348,7 +496,7 @@ class DocumentFormattingService(val workspace: Workspace, documentManager: Docum
             text += space
             text += TokenType.LEFT_BRACE.literal()
             text += enter
-            text += enumBody(enumBody, "$indent$table")
+            text += enumBody(enumBody, "$indent$tab")
             text += enter
             text += indent
             text += TokenType.RIGHT_BRACE.literal()
@@ -381,6 +529,11 @@ class DocumentFormattingService(val workspace: Workspace, documentManager: Docum
         var text = indent
         userProp.doc?.also { doc ->
             text += doc.text
+            text += enter
+            text += indent
+        }
+        userProp.annotation()?.takeIf { it.isNotEmpty() }?.also { annotations ->
+            text += annotations.joinToString("$enter$indent") { annotation(it, indent) }
             text += enter
             text += indent
         }
@@ -425,22 +578,27 @@ class DocumentFormattingService(val workspace: Workspace, documentManager: Docum
             }
         }
         text += TokenType.RIGHT_PARENTHESIS.literal()
-        aliasGroup.aliasGroupProp()?.also { aliasGroupProp ->
+
+        if (aliasGroup.positiveProp()?.isNotEmpty() == true || aliasGroup.macro()?.isNotEmpty() == true) {
             text += space
             text += TokenType.LEFT_BRACE.literal()
             text += enter
-            aliasGroupProp.forEach { prop ->
-                prop.positiveProp()?.also { positiveProp ->
-                    text += positiveProp(positiveProp, "$indent    ")
-                }
-                prop.macro()?.also { macro ->
-                    text += macro(macro, "$indent    ")
-                }
-                if (prop != aliasGroupProp.last()) {
+            aliasGroup.positiveProp()?.takeIf { it.isNotEmpty() }?.forEach {
+                text += positiveProp(it, "$indent$tab")
+                if (it != aliasGroup.positiveProp().last()) {
                     text += enter
-                    if (workspace.setting.formatting.propsSpaceLine == Setting.Formatting.PropsSpaceLine.ALWAYS) {
-                        text += enter
-                    }
+                }
+                if (workspace.setting.formatting.propsSpaceLine == Setting.Formatting.PropsSpaceLine.ALWAYS) {
+                    text += enter
+                }
+            }
+            aliasGroup.macro()?.takeIf { it.isNotEmpty() }?.forEach {
+                text += macro(it, "$indent$tab")
+                if (it != aliasGroup.macro().last()) {
+                    text += enter
+                }
+                if (workspace.setting.formatting.propsSpaceLine == Setting.Formatting.PropsSpaceLine.ALWAYS) {
+                    text += enter
                 }
             }
             text += enter
@@ -455,22 +613,26 @@ class DocumentFormattingService(val workspace: Workspace, documentManager: Docum
         text += space
         text += TokenType.LEFT_BRACE.literal()
         text += enter
+        dtoBody.macro()?.takeIf { it.isNotEmpty() }?.also { macros ->
+            text += macros.joinToString(enter) { macro(it, "$indent$tab") }
+            text += enter
+            if (workspace.setting.formatting.propsSpaceLine == Setting.Formatting.PropsSpaceLine.ALWAYS) {
+                text += enter
+            }
+        }
         val explicitProps = dtoBody.explicitProps
         explicitProps.takeIf { it.isNotEmpty() }?.forEach { explicitProp ->
             explicitProp.positiveProp()?.also { positiveProp ->
-                text += positiveProp(positiveProp, "$indent$table")
+                text += positiveProp(positiveProp, "$indent$tab")
             }
             explicitProp.userProp()?.also { userProp ->
-                text += userProp(userProp, "$indent$table")
+                text += userProp(userProp, "$indent$tab")
             }
             explicitProp.negativeProp()?.also { negativeProp ->
-                text += negativeProp(negativeProp, "$indent$table")
-            }
-            explicitProp.macro()?.also { macro ->
-                text += macro(macro, "$indent$table")
+                text += negativeProp(negativeProp, "$indent$tab")
             }
             explicitProp.aliasGroup()?.also { aliasGroup ->
-                text += aliasGroup(aliasGroup, "$indent$table")
+                text += aliasGroup(aliasGroup, "$indent$tab")
             }
             if (explicitProp != explicitProps.last()) {
                 text += enter

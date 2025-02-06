@@ -219,10 +219,10 @@ class DocumentHoverService(documentManager: DocumentManager) : DocumentServiceAd
     }
 
     private fun body(body: DtoParser.DtoBodyContext) {
+        body.macro().forEach { macro ->
+            macro(macro)
+        }
         body.explicitProps.forEach { prop ->
-            prop.macro()?.also { macro ->
-                macro(macro)
-            }
             prop.positiveProp()?.also { positiveProp ->
                 positiveProp(positiveProp)
             }
@@ -232,13 +232,11 @@ class DocumentHoverService(documentManager: DocumentManager) : DocumentServiceAd
             prop.aliasGroup()?.also { aliasGroup ->
                 aliasGroup.pattern?.also { pattern ->
                     aliasGroup.props.forEach { alias ->
-                        alias.macro()?.also { macro ->
-                            macro(macro, pattern)
-                        }
-                        alias.positiveProp()?.also { positiveProp ->
-                            positiveProp(positiveProp, pattern)
-                        }
+                        positiveProp(alias, pattern)
                     }
+                }
+                aliasGroup.macro()?.takeIf { it.isNotEmpty() }?.forEach { macro ->
+                    macro(macro, aliasGroup.pattern)
                 }
             }
         }

@@ -112,6 +112,13 @@ class ImmutableType(
             map
         }
 
+    val idProp: ImmutableProp? by lazy {
+        val idProps = declaredProperties.values.filter { it.isId }
+        val superIdProp = superTypes.firstOrNull { it.idProp !== null }?.idProp
+        val prop = idProps.firstOrNull() ?: superIdProp
+        prop
+    }
+
     override val isEntity: Boolean = immutableAnnoType == Entity::class.qualifiedName
     private val isMappedSuperclass: Boolean = immutableAnnoType == MappedSuperclass::class.qualifiedName
     val isEmbeddable: Boolean = immutableAnnoType == Embeddable::class.qualifiedName

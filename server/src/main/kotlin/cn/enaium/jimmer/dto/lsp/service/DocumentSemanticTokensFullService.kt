@@ -60,7 +60,8 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
                     addToken(token, SemanticType.NUMBER)
                 }
 
-                TokenType.PACKAGE.id, TokenType.IMPLEMENTS.id, TokenType.AS.id -> {
+                TokenType.PACKAGE.id, TokenType.IMPLEMENTS.id, TokenType.AS.id, TokenType.NULL.id,
+                TokenType.OR.id, TokenType.AND.id, TokenType.IS.id -> {
                     addToken(token, SemanticType.KEYWORD)
                 }
             }
@@ -241,6 +242,9 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
         positiveProp.props.forEach {
             addToken(it, SemanticType.PROPERTY)
         }
+        positiveProp.configuration()?.takeIf { it.isNotEmpty() }?.forEach { configuration ->
+            configuration(configuration)
+        }
         annotations(positiveProp.annotations)
         annotations(positiveProp.bodyAnnotations)
         addToken(positiveProp.modifier, SemanticType.KEYWORD)
@@ -266,11 +270,155 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
         }
     }
 
-    private fun body(body: DtoParser.DtoBodyContext) {
-        body.explicitProps.forEach { prop ->
-            prop.macro()?.also { macro ->
-                macro(macro)
+    private fun cmpPredicate(cmpPredicate: DtoParser.CmpPredicateContext) {
+        cmpPredicate.propPath()?.also { propPath ->
+            propPath(propPath)
+        }
+        cmpPredicate.propValue()?.also { propValue ->
+            propValue.SqlStringLiteral()?.also {
+                addToken(it.symbol, SemanticType.STRING)
             }
+        }
+        cmpPredicate.op?.also { op ->
+            addToken(op, SemanticType.KEYWORD)
+        }
+    }
+
+    private fun nullityPredicate(nullityPredicate: DtoParser.NullityPredicateContext) {
+        nullityPredicate.propPath()?.also { propPath ->
+            propPath(propPath)
+        }
+        nullityPredicate.not?.also { not ->
+            addToken(not, SemanticType.KEYWORD)
+        }
+    }
+
+    private fun atomPredicate(atomPredicate: DtoParser.AtomPredicateContext) {
+        atomPredicate.predicate()?.also {
+            predicate(it)
+        }
+        atomPredicate.cmpPredicate()?.also { cmpPredicate ->
+            cmpPredicate(cmpPredicate)
+        }
+        atomPredicate.nullityPredicate()?.also { nullityPredicate ->
+            nullityPredicate(nullityPredicate)
+        }
+    }
+
+    private fun andPredicate(andPredicate: DtoParser.AndPredicateContext) {
+        andPredicate.atomPredicate()?.takeIf { it.isNotEmpty() }?.forEach { atomPredicate ->
+            atomPredicate(atomPredicate)
+        }
+    }
+
+    private fun predicate(predicate: DtoParser.PredicateContext) {
+        predicate.andPredicate()?.takeIf { it.isNotEmpty() }?.forEach { andPredicate ->
+            andPredicate(andPredicate)
+        }
+    }
+
+    private fun where(where: DtoParser.WhereContext) {
+        addToken(where.start, SemanticType.MACRO)
+        where.predicate()?.also { predicate ->
+            predicate(predicate)
+        }
+    }
+
+    private fun propPath(propPath: DtoParser.PropPathContext) {
+        propPath.parts.forEach { part ->
+            addToken(part, SemanticType.PROPERTY)
+        }
+    }
+
+    private fun orderByItem(orderByItem: DtoParser.OrderByItemContext) {
+        orderByItem.propPath()?.also { propPath ->
+            propPath(propPath)
+        }
+    }
+
+    private fun orderBy(orderBy: DtoParser.OrderByContext) {
+        addToken(orderBy.start, SemanticType.MACRO)
+        orderBy.orderByItem()?.takeIf { it.isNotEmpty() }?.forEach { orderByItem ->
+            orderByItem(orderByItem)
+        }
+    }
+
+    private fun filter(filter: DtoParser.FilterContext) {
+        addToken(filter.start, SemanticType.MACRO)
+        filter.qualifiedName()?.also { qualifiedName ->
+            qualifiedName.parts.forEach { part ->
+                addToken(part, SemanticType.TYPE)
+            }
+        }
+    }
+
+    private fun recursion(recursion: DtoParser.RecursionContext) {
+        addToken(recursion.start, SemanticType.MACRO)
+        recursion.qualifiedName()?.also { qualifiedName ->
+            qualifiedName.parts.forEach { part ->
+                addToken(part, SemanticType.TYPE)
+            }
+        }
+    }
+
+    private fun fetchType(fetchType: DtoParser.FetchTypeContext) {
+        addToken(fetchType.start, SemanticType.MACRO)
+        fetchType.fetchMode?.also { fetchMode ->
+            addToken(fetchMode, SemanticType.ENUM_MEMBER)
+        }
+    }
+
+    private fun limit(limit: DtoParser.LimitContext) {
+        addToken(limit.start, SemanticType.MACRO)
+    }
+
+    private fun offset(offset: DtoParser.OffsetContext) {
+        addToken(offset.start, SemanticType.MACRO)
+    }
+
+    private fun batch(batch: DtoParser.BatchContext) {
+        addToken(batch.start, SemanticType.MACRO)
+    }
+
+    private fun recursionDepth(recursionDepth: DtoParser.RecursionDepthContext) {
+        addToken(recursionDepth.start, SemanticType.MACRO)
+    }
+
+    private fun configuration(configuration: DtoParser.ConfigurationContext) {
+        configuration.where()?.also { where ->
+            where(where)
+        }
+        configuration.orderBy()?.also { orderBy ->
+            orderBy(orderBy)
+        }
+        configuration.filter()?.also { filter ->
+            filter(filter)
+        }
+        configuration.recursion()?.also { recursion ->
+            recursion(recursion)
+        }
+        configuration.fetchType()?.also { fetchType ->
+            fetchType(fetchType)
+        }
+        configuration.limit()?.also { limit ->
+            limit(limit)
+        }
+        configuration.offset()?.also { offset ->
+            offset(offset)
+        }
+        configuration.batch()?.also { batch ->
+            batch(batch)
+        }
+        configuration.recursionDepth()?.also { recursionDepth ->
+            recursionDepth(recursionDepth)
+        }
+    }
+
+    private fun body(body: DtoParser.DtoBodyContext) {
+        body.macro()?.takeIf { it.isNotEmpty() }?.forEach { macro ->
+            macro(macro)
+        }
+        body.explicitProps.forEach { prop ->
             prop.positiveProp()?.also { positiveProp ->
                 positiveProp(positiveProp)
             }
@@ -293,13 +441,11 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
                     addToken(pattern.replacement, SemanticType.VARIABLE)
                     addToken(pattern.translator, SemanticType.FUNCTION)
                 }
-                aliasGroup.props.forEach { alias ->
-                    alias.macro()?.also { macro ->
-                        macro(macro)
-                    }
-                    alias.positiveProp()?.also { positiveProp ->
-                        positiveProp(positiveProp)
-                    }
+                aliasGroup.positiveProp()?.takeIf { it.isNotEmpty() }?.forEach { alias ->
+                    positiveProp(alias)
+                }
+                aliasGroup.macro()?.takeIf { it.isNotEmpty() }?.forEach { macro ->
+                    macro(macro)
                 }
             }
         }

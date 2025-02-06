@@ -135,4 +135,16 @@ class ImmutableProp(
     override fun isAssociation(entityLevel: Boolean): Boolean {
         return isAssociation && (!entityLevel || targetType?.isEntity == true)
     }
+
+    override val isReference: Boolean
+        get() = !isList && isAssociation
+
+    val propName: String
+        get() = member.returnType.toString().let {
+            if (it.matches(Regex(".+[!|?]"))) {
+                it.substring(0, it.length - 1)
+            } else {
+                it
+            }
+        }
 }

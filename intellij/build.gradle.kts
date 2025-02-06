@@ -17,7 +17,6 @@ dependencies {
     intellijPlatform {
         intellijIdeaCommunity("2023.2")
         plugin("com.redhat.devtools.lsp4ij:0.9.0")
-        instrumentationTools()
     }
 }
 
