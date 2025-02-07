@@ -162,7 +162,7 @@ class DocumentCompletionService(private val workspace: Workspace, documentManage
                 val isInBlock = props != null
 
                 if (isInBlock) {
-                    completionItems += props!!.second.map { prop ->
+                    completionItems += props.second.map { prop ->
                         CompletionItem(prop.name).apply {
                             kind = CompletionItemKind.Field
                             val type = prop.type()
@@ -189,6 +189,9 @@ class DocumentCompletionService(private val workspace: Workspace, documentManage
                         DtoModifier.SPECIFICATION
                     ) == true
 
+                val isInViewBlock =
+                    document.rightTime.dtoTypes.find { props?.first?.startsWith("${it.name}") == true }?.modifiers.isNullOrEmpty()
+
                 if (isInBlock) {
                     completionItems += listOf("allScalars", "allReferences").map { name ->
                         CompletionItem(name).apply {
@@ -199,6 +202,29 @@ class DocumentCompletionService(private val workspace: Workspace, documentManage
                             insertText = "#$name"
                             insertTextFormat = InsertTextFormat.Snippet
                             sortText = "${sort++}"
+                        }
+                    }
+                    if (isInViewBlock) {
+                        completionItems += listOf(
+                            "where",
+                            "orderBy",
+                            "filter",
+                            "recursion",
+                            "fetchType",
+                            "limit",
+                            "offset",
+                            "batch",
+                            "depth"
+                        ).map { name ->
+                            CompletionItem(name).apply {
+                                kind = CompletionItemKind.Function
+                                labelDetails = CompletionItemLabelDetails().apply {
+                                    description = "configuration"
+                                }
+                                insertText = "!$name($0)"
+                                insertTextFormat = InsertTextFormat.Snippet
+                                sortText = "${sort++}"
+                            }
                         }
                     }
                 }

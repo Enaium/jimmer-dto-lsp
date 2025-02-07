@@ -22,6 +22,10 @@
 
 ![20250116232205](https://s2.loli.net/2025/01/16/MBbm1uXcOrCdIkp.png)
 
+### Classpath
+
+If you not have dependencies, you can only enable `Find Other Project`.
+
 ## FAQ
 
 ### Plguin not work
