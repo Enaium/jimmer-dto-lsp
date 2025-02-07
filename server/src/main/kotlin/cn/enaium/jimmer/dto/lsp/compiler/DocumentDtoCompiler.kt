@@ -49,15 +49,15 @@ class DocumentDtoCompiler(dtoFile: DtoFile) : DtoCompiler<ImmutableType, Immutab
         baseProp.enumConstants
 
     override fun getSimplePropType(baseProp: ImmutableProp): SimplePropType? =
-        simplePropMap[baseProp.propName] ?: SimplePropType.NONE
+        simplePropMap[baseProp.propTypeName] ?: SimplePropType.NONE
 
 
     override fun getSimplePropType(pathNode: PropConfig.PathNode<ImmutableProp>): SimplePropType? =
         simplePropMap[
             if (pathNode.isAssociatedId) {
-                pathNode.prop.targetType!!.idProp!!.propName
+                pathNode.prop.targetType!!.idProp!!.propTypeName
             } else {
-                pathNode.prop.propName
+                pathNode.prop.propTypeName
             }
         ] ?: SimplePropType.NONE
 

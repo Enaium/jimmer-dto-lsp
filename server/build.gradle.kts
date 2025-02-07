@@ -18,6 +18,7 @@ dependencies {
     implementation(libs.jimmer.sqlKotlin)
     implementation(libs.jackson)
     implementation(libs.jackson.kotlin)
+    implementation(libs.asm.tree)
 
     testImplementation(kotlin("test"))
     implementation(kotlin("reflect"))

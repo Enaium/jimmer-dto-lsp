@@ -20,6 +20,8 @@ import org.babyfish.jimmer.Formula
 import org.babyfish.jimmer.Immutable
 import org.babyfish.jimmer.dto.compiler.spi.BaseProp
 import org.babyfish.jimmer.sql.*
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.tree.ClassNode
 import kotlin.reflect.KCallable
 import kotlin.reflect.KClass
 
@@ -47,7 +49,7 @@ class ImmutableProp(
                     Immutable::class.qualifiedName
                 ).contains(it.annotationClass.qualifiedName)
             }
-        } ?: false
+        } == true
 
     val targetType: ImmutableType? by lazy {
         targetDeclaration
@@ -108,8 +110,46 @@ class ImmutableProp(
     override val isLogicalDeleted: Boolean =
         member.annotations.any { it.annotationClass.qualifiedName == LogicalDeleted::class.qualifiedName }
 
-    override val isNullable: Boolean =
-        member.returnType.isMarkedNullable
+    override val isNullable: Boolean
+        get() {
+            val nullable = (member.returnType.isMarkedNullable
+                    || member.annotations.any { it.annotationClass.qualifiedName?.startsWith("Null") == true }
+                    || listOf(
+                java.lang.Long::class.java.name,
+                Integer::class.java.name,
+                java.lang.Short::class.java.name,
+                java.lang.Byte::class.java.name,
+                java.lang.Double::class.java.name,
+                java.lang.Float::class.java.name,
+                java.lang.Boolean::class.java.name
+            ).contains((member.returnType.classifier as KClass<*>).java.name))
+            if (!nullable) {
+                try {
+                    val inputStream = context.workspace.loader.getResourceAsStream(
+                        declaringType.klass.name.replace(
+                            '.',
+                            '/'
+                        ) + ".class"
+                    )
+                    val classNode = ClassNode()
+                    ClassReader(
+                        inputStream
+                    ).accept(classNode, 0)
+                    classNode.methods.forEach { method ->
+                        if (method.name == name) {
+                            method.invisibleAnnotations?.forEach {
+                                if (it.desc.substringAfterLast("/").startsWith("Null")) {
+                                    return true
+                                }
+                            }
+                        }
+                    }
+                } catch (_: Throwable) {
+
+                }
+            }
+            return nullable
+        }
 
     override val isRecursive: Boolean by lazy {
         declaringType.isEntity && manyToManyViewBaseProp === null && targetDeclaration !== null && declaringType.klass.isAssignableFrom(
@@ -139,7 +179,7 @@ class ImmutableProp(
     override val isReference: Boolean
         get() = !isList && isAssociation
 
-    val propName: String
+    val propTypeName: String
         get() = member.returnType.toString().let {
             if (it.matches(Regex(".+[!|?]"))) {
                 it.substring(0, it.length - 1)

@@ -108,6 +108,9 @@ data class Workspace(
         )
     }
 
+    var loader = URLClassLoader(emptyArray(), Main::class.java.classLoader)
+        private set
+
     private val classCache = mutableMapOf<String, Class<*>>()
     private val immutableCache = mutableMapOf<String, Class<*>>()
     private val annotationCache = mutableMapOf<String, Class<*>>()
@@ -130,8 +133,9 @@ data class Workspace(
             cancellable = false
         })))
 
-        val classpath = findClasspath(fully)
-        val loader = URLClassLoader(classpath.map { it.toUri().toURL() }.toTypedArray())
+        val classpath =
+            findClasspath(fully) + listOf(Main::class.java.protectionDomain.codeSource.location.toURI().toPath())
+        loader = URLClassLoader((classpath.map { it.toUri().toURL() }).toTypedArray())
 
         if (fully) {
             classCache.clear()
