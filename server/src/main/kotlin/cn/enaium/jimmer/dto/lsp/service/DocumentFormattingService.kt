@@ -587,18 +587,20 @@ class DocumentFormattingService(val workspace: Workspace, documentManager: Docum
                 text += positiveProp(it, "$indent$tab")
                 if (it != aliasGroup.positiveProp().last()) {
                     text += enter
-                }
-                if (workspace.setting.formatting.propsSpaceLine == Setting.Formatting.PropsSpaceLine.ALWAYS) {
-                    text += enter
+                    if (workspace.setting.formatting.propsSpaceLine == Setting.Formatting.PropsSpaceLine.ALWAYS) {
+                        text += enter
+                    }
                 }
             }
-            aliasGroup.macro()?.takeIf { it.isNotEmpty() }?.forEach {
-                text += macro(it, "$indent$tab")
-                if (it != aliasGroup.macro().last()) {
-                    text += enter
-                }
-                if (workspace.setting.formatting.propsSpaceLine == Setting.Formatting.PropsSpaceLine.ALWAYS) {
-                    text += enter
+            aliasGroup.macro()?.takeIf { it.isNotEmpty() }?.also { macros ->
+                macros.forEach {
+                    text += macro(it, "$indent$tab")
+                    if ((it != macros.last() || macros.size == 1) && aliasGroup.positiveProp().isNullOrEmpty().not()) {
+                        text += enter
+                        if (workspace.setting.formatting.propsSpaceLine == Setting.Formatting.PropsSpaceLine.ALWAYS) {
+                            text += enter
+                        }
+                    }
                 }
             }
             text += enter
@@ -613,11 +615,18 @@ class DocumentFormattingService(val workspace: Workspace, documentManager: Docum
         text += space
         text += TokenType.LEFT_BRACE.literal()
         text += enter
+
         dtoBody.macro()?.takeIf { it.isNotEmpty() }?.also { macros ->
-            text += macros.joinToString(enter) { macro(it, "$indent$tab") }
-            text += enter
-            if (workspace.setting.formatting.propsSpaceLine == Setting.Formatting.PropsSpaceLine.ALWAYS) {
-                text += enter
+            macros.forEach {
+                text += macro(it, "$indent$tab")
+                if ((it != dtoBody.macro().last() || macros.size == 1)
+                    && dtoBody.explicitProp().isNullOrEmpty().not()
+                ) {
+                    text += enter
+                    if (workspace.setting.formatting.propsSpaceLine == Setting.Formatting.PropsSpaceLine.ALWAYS) {
+                        text += enter
+                    }
+                }
             }
         }
         val explicitProps = dtoBody.explicitProps
