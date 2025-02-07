@@ -33,6 +33,7 @@ import org.eclipse.lsp4j.Range
 import java.io.File
 import java.net.URI
 import java.nio.file.Path
+import java.util.*
 import java.util.jar.JarFile
 import kotlin.io.path.*
 
@@ -398,6 +399,14 @@ fun ExportStatementContext.getPackageName(): String {
         } else {
             it.joinToString(".") { it.text }
         }
+    }
+}
+
+fun String.toPropName(): String {
+    return if (this.startsWith("get")) {
+        substring(3).replaceFirstChar { it.lowercase(Locale.getDefault()) }
+    } else {
+        this
     }
 }
 

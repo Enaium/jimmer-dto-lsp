@@ -16,6 +16,8 @@
 
 package cn.enaium.jimmer.dto.lsp.compiler
 
+import cn.enaium.jimmer.dto.lsp.logger
+import cn.enaium.jimmer.dto.lsp.utility.toPropName
 import org.babyfish.jimmer.Formula
 import org.babyfish.jimmer.Immutable
 import org.babyfish.jimmer.dto.compiler.spi.BaseProp
@@ -69,12 +71,6 @@ class ImmutableProp(
             emptyList()
         }
 
-    val isStringProp: Boolean
-        get() {
-            return member.returnType.classifier == String::class ||
-                    member.returnType.classifier == java.lang.String::class
-        }
-
     override val idViewBaseProp: BaseProp? = null
 
     val isIdView: Boolean = member.annotations.any { it.annotationClass.qualifiedName == IdView::class.qualifiedName }
@@ -112,7 +108,7 @@ class ImmutableProp(
 
     override val isNullable: Boolean
         get() {
-            val nullable = (member.returnType.isMarkedNullable
+            var nullable = (member.returnType.isMarkedNullable
                     || member.annotations.any { it.annotationClass.qualifiedName?.startsWith("Null") == true }
                     || listOf(
                 java.lang.Long::class.java.name,
@@ -123,10 +119,11 @@ class ImmutableProp(
                 java.lang.Float::class.java.name,
                 java.lang.Boolean::class.java.name
             ).contains((member.returnType.classifier as KClass<*>).java.name))
-            if (!nullable) {
+
+            fun isNullable(className: String): Boolean {
                 try {
                     val inputStream = context.workspace.loader.getResourceAsStream(
-                        declaringType.klass.name.replace(
+                        className.replace(
                             '.',
                             '/'
                         ) + ".class"
@@ -136,7 +133,7 @@ class ImmutableProp(
                         inputStream
                     ).accept(classNode, 0)
                     classNode.methods.forEach { method ->
-                        if (method.name == name) {
+                        if (method.name.toPropName() == name) {
                             method.invisibleAnnotations?.forEach {
                                 if (it.desc.substringAfterLast("/").startsWith("Null")) {
                                     return true
@@ -146,6 +143,18 @@ class ImmutableProp(
                     }
                 } catch (_: Throwable) {
 
+                }
+                return false
+            }
+            if (!nullable) {
+                nullable = isNullable(declaringType.klass.name)
+            }
+            if (!nullable) {
+                for (it in declaringType.superTypes) {
+                    nullable = isNullable(it.klass.name)
+                    if (nullable) {
+                        break
+                    }
                 }
             }
             return nullable
@@ -166,7 +175,7 @@ class ImmutableProp(
         member.annotations.any { it.annotationClass.qualifiedName == ManyToManyView::class.qualifiedName }
 
     override val name: String
-        get() = member.name
+        get() = member.name.toPropName()
 
     override fun hasTransientResolver(): Boolean {
         return isTransient

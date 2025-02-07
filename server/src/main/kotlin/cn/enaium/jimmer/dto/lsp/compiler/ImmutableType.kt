@@ -16,6 +16,7 @@
 
 package cn.enaium.jimmer.dto.lsp.compiler
 
+import cn.enaium.jimmer.dto.lsp.utility.toPropName
 import org.babyfish.jimmer.Immutable
 import org.babyfish.jimmer.dto.compiler.spi.BaseType
 import org.babyfish.jimmer.sql.Embeddable
@@ -47,13 +48,13 @@ class ImmutableType(
     val declaredProperties: Map<String, ImmutableProp>
         get() = (klass.kotlin.members
             .filter { it.annotations.any { it.annotationClass.qualifiedName == Id::class.qualifiedName } }
-            .associateBy({ it.name }) {
+            .associateBy({ it.name.toPropName() }) {
                 ImmutableProp(context, this, it)
             } + klass.kotlin.members
             .filter { it.annotations.any { it.annotationClass.qualifiedName != Id::class.qualifiedName } || it.annotations.isEmpty() }
-            .associateBy({ it.name }) {
+            .associateBy({ it.name.toPropName() }) {
                 ImmutableProp(context, this, it)
-            }).filter { !Any::class.members.map { any -> any.name }.contains(it.key) }
+            }).filter { !Any::class.members.map { any -> any.name.toPropName() }.contains(it.key) }
 
     private val superPropMap: Map<String, ImmutableProp> = superTypes
         .flatMap { it.properties.values }
