@@ -57,10 +57,6 @@ class DocumentSyncService(private val workspace: Workspace, documentManager: Doc
     }
 
     private fun validate(content: String, uri: String, type: Type) {
-        if (type == Type.SAVE) {
-            workspace.indexClasses(false)
-        }
-
         val path = URI.create(uri).toPath()
         val projectDir = findProjectDir(path)
         val context = Context(workspace)
@@ -119,23 +115,24 @@ class DocumentSyncService(private val workspace: Workspace, documentManager: Doc
                         return content.reader()
                     }
                 }, "", "", emptyList(), URI.create(uri).toFile().name))
-            context.findImmutableClass(projectDir, path, documentDtoCompiler.sourceTypeName)?.run {
-                val immutableType = ImmutableType(context, this)
-                val compile = documentDtoCompiler.compile(immutableType)
-                client?.publishDiagnostics(PublishDiagnosticsParams().apply {
-                    this.uri = uri
-                    diagnostics = emptyList()
-                })
-                documentManager.openOrUpdateDocument(
-                    uri,
-                    DtoDocument(
-                        content,
-                        context,
-                        DocumentContext(ast, lexer, token, immutableType, compile),
-                        DocumentContext(ast, lexer, token, immutableType, compile)
+            context.findImmutableClass(projectDir, path, documentDtoCompiler.sourceTypeName.substringAfterLast("."))
+                ?.run {
+                    val immutableType = ImmutableType(context, this)
+                    val compile = documentDtoCompiler.compile(immutableType)
+                    client?.publishDiagnostics(PublishDiagnosticsParams().apply {
+                        this.uri = uri
+                        diagnostics = emptyList()
+                    })
+                    documentManager.openOrUpdateDocument(
+                        uri,
+                        DtoDocument(
+                            content,
+                            context,
+                            DocumentContext(ast, lexer, token, immutableType, compile),
+                            DocumentContext(ast, lexer, token, immutableType, compile)
+                        )
                     )
-                )
-            } ?: run {
+                } ?: run {
                 client?.publishDiagnostics(PublishDiagnosticsParams().apply {
                     this.uri = uri
                     diagnostics = listOf(Diagnostic().apply {

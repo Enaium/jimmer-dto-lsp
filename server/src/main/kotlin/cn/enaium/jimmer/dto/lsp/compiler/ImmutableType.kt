@@ -16,45 +16,42 @@
 
 package cn.enaium.jimmer.dto.lsp.compiler
 
+import cn.enaium.jimmer.dto.lsp.source.Immutable
+import cn.enaium.jimmer.dto.lsp.source.Source
 import cn.enaium.jimmer.dto.lsp.utility.toPropName
-import org.babyfish.jimmer.Immutable
 import org.babyfish.jimmer.dto.compiler.spi.BaseType
-import org.babyfish.jimmer.sql.Embeddable
-import org.babyfish.jimmer.sql.Entity
 import org.babyfish.jimmer.sql.Id
-import org.babyfish.jimmer.sql.MappedSuperclass
 
 /**
  * @author Enaium
  */
-class ImmutableType(
+data class ImmutableType(
     private val context: Context,
-    val klass: Class<*>
+    val source: Source
 ) : BaseType {
-    private val immutableAnnoType: String? = klass.annotations.filter {
-        listOf(
-            Entity::class.qualifiedName,
-            MappedSuperclass::class.qualifiedName,
-            Embeddable::class.qualifiedName,
-            Immutable::class.qualifiedName
-        ).contains(it.annotationClass.qualifiedName)
-    }.takeIf { it.isNotEmpty() }?.first()?.annotationClass?.qualifiedName
-
-    val superTypes: List<ImmutableType> = klass.interfaces.map { context.ofType(it) }
+    val superTypes: List<ImmutableType> = if (source is Immutable) {
+        source.superTypes.mapNotNull { context.ofType(it) }
+    } else {
+        emptyList()
+    }
 
     private val primarySuperType: ImmutableType? =
         superTypes.firstOrNull { !it.isMappedSuperclass }
 
     val declaredProperties: Map<String, ImmutableProp>
-        get() = (klass.kotlin.members
-            .filter { it.annotations.any { it.annotationClass.qualifiedName == Id::class.qualifiedName } }
-            .associateBy({ it.name.toPropName() }) {
-                ImmutableProp(context, this, it)
-            } + klass.kotlin.members
-            .filter { it.annotations.any { it.annotationClass.qualifiedName != Id::class.qualifiedName } || it.annotations.isEmpty() }
-            .associateBy({ it.name.toPropName() }) {
-                ImmutableProp(context, this, it)
-            }).filter { !Any::class.members.map { any -> any.name.toPropName() }.contains(it.key) }
+        get() = if (source is Immutable) {
+            source.props
+                .filter { it.annotations.any { it.name.endsWith(Id::class.simpleName!!) } }
+                .associateBy({ it.name.toPropName() }) {
+                    ImmutableProp(context, this, it)
+                } + source.props
+                .filter { it.annotations.any { !it.name.endsWith(Id::class.simpleName!!) } || it.annotations.isEmpty() }
+                .associateBy({ it.name.toPropName() }) {
+                    ImmutableProp(context, this, it)
+                }
+        } else {
+            emptyMap()
+        }
 
     private val superPropMap: Map<String, ImmutableProp> = superTypes
         .flatMap { it.properties.values }
@@ -64,11 +61,10 @@ class ImmutableType(
             it.second.first()
         }
 
-
     private val redefinedProps = superPropMap.filterKeys {
         primarySuperType == null || !primarySuperType.properties.contains(it)
     }.mapValues {
-        ImmutableProp(context, this, it.value.member)
+        ImmutableProp(context, this, it.value.prop)
     }
 
     val properties: Map<String, ImmutableProp> =
@@ -120,10 +116,18 @@ class ImmutableType(
         prop
     }
 
-    override val isEntity: Boolean = immutableAnnoType == Entity::class.qualifiedName
-    private val isMappedSuperclass: Boolean = immutableAnnoType == MappedSuperclass::class.qualifiedName
-    val isEmbeddable: Boolean = immutableAnnoType == Embeddable::class.qualifiedName
-    override val name: String = klass.simpleName
-    override val packageName: String = klass.packageName
-    override val qualifiedName: String = klass.name
+    override val isEntity: Boolean =
+        source is Immutable && source.immutableType == Immutable.ImmutableType.ENTITY
+    private val isMappedSuperclass: Boolean =
+        source is Immutable && source.immutableType == Immutable.ImmutableType.MAPPED_SUPERCLASS
+    val isEmbeddable: Boolean =
+        source is Immutable && source.immutableType == Immutable.ImmutableType.EMBEDDABLE
+
+    override val name: String = source.name
+    override val packageName: String = source.packageName
+    override val qualifiedName: String = source.name
+
+    override fun toString(): String {
+        return name
+    }
 }

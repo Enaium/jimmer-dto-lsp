@@ -16,6 +16,10 @@
 
 package cn.enaium.jimmer.dto.lsp
 
+import cn.enaium.jimmer.dto.lsp.source.JavaProcessor
+import cn.enaium.jimmer.dto.lsp.source.KotlinProcessor
+import cn.enaium.jimmer.dto.lsp.source.Lang
+import cn.enaium.jimmer.dto.lsp.source.Source
 import cn.enaium.jimmer.dto.lsp.utility.*
 import org.babyfish.jimmer.Immutable
 import org.babyfish.jimmer.sql.Embeddable
@@ -26,9 +30,8 @@ import org.eclipse.lsp4j.jsonrpc.messages.Either
 import java.net.URI
 import java.net.URLClassLoader
 import java.nio.file.Path
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
+import java.util.concurrent.*
+import kotlin.io.path.exists
 import kotlin.io.path.toPath
 
 /**
@@ -40,6 +43,7 @@ data class Workspace(
     val dependencies: MutableMap<String, List<Path>> = mutableMapOf()
 ) {
     fun resolve() {
+        processSource()
         if (setting.classpath.findBuilder) {
             findBuilder()
         }
@@ -108,6 +112,63 @@ data class Workspace(
         )
     }
 
+    private val sourceDirs = mapOf(
+        Lang.JAVA to "src/main/java",
+        Lang.JAVA to "src/test/java",
+        Lang.KOTLIN to "src/main/kotlin",
+        Lang.KOTLIN to "src/test/kotlin"
+    )
+
+    private val sourceCache = mutableMapOf<String, Source>()
+
+    private fun processSource() {
+        val token = "Process Source"
+        client?.createProgress(WorkDoneProgressCreateParams(Either.forLeft(token)))
+        client?.notifyProgress(ProgressParams(Either.forLeft(token), Either.forLeft(WorkDoneProgressBegin().apply {
+            title = "$token in progress"
+            cancellable = false
+        })))
+        val pool = ThreadPoolExecutor(
+            Runtime.getRuntime().availableProcessors() * 2,
+            Runtime.getRuntime().availableProcessors() * 4,
+            60L,
+            TimeUnit.SECONDS,
+            LinkedBlockingQueue()
+        )
+        val futures = mutableListOf<Future<List<Source>>>()
+        findProjects(URI.create(folders.first()).toPath()).forEach { project ->
+            sourceDirs.forEach { (lang, dir) ->
+                val source = project.resolve(dir)
+                if (source.exists().not()) return@forEach
+                futures += pool.submit(Callable {
+                    when (lang) {
+                        Lang.JAVA -> {
+                            JavaProcessor(source).process()
+                        }
+
+                        Lang.KOTLIN -> {
+                            KotlinProcessor(source).process()
+                        }
+                    }
+                })
+            }
+        }
+        futures.forEach {
+            it.get().forEach { source ->
+                sourceCache[source.name] = source
+            }
+        }
+        pool.shutdown()
+        client?.notifyProgress(
+            ProgressParams(
+                Either.forLeft(token),
+                Either.forLeft(WorkDoneProgressEnd().apply {
+                    message = "$token done"
+                })
+            )
+        )
+    }
+
     var loader = URLClassLoader(emptyArray(), Main::class.java.classLoader)
         private set
 
@@ -119,9 +180,9 @@ data class Workspace(
         return (if (fully) {
             (dependencies.values
                     + folders.map { findClasspath(URI.create(it).toPath()) }
-                    + folders.map { findSubprojects(URI.create(it).toPath()) }.flatten().map { findClasspath(it) })
+                    + folders.map { findProjects(URI.create(it).toPath()) }.flatten().map { findClasspath(it) })
         } else {
-            folders.map { findSubprojects(URI.create(it).toPath()) }.flatten().map { findClasspath(it) }
+            folders.map { findProjects(URI.create(it).toPath()) }.flatten().map { findClasspath(it) }
         }).flatten()
     }
 
@@ -188,16 +249,8 @@ data class Workspace(
         return classCache.values.map { it.name }
     }
 
-    fun findClass(name: String): Class<*>? {
-        return classCache[name]
-    }
-
-    fun findImmutable(name: String): Class<*>? {
-        return immutableCache[name]
-    }
-
-    fun findAnnotation(name: String): Class<*>? {
-        return annotationCache[name]
+    fun findSource(name: String): Source? {
+        return sourceCache[name]
     }
 
     operator fun ClassLoader.get(name: String?): Class<*>? {

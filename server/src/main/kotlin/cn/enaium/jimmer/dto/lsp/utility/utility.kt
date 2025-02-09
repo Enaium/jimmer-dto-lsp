@@ -230,19 +230,22 @@ fun findProjectDir(dtoPath: Path, root: Boolean = false): Path? {
     return rootPath
 }
 
-fun findSubprojects(rootProject: Path): List<Path> {
+fun findProjects(rootProject: Path): List<Path> {
     val results = mutableListOf<Path>()
-    findSubprojects(rootProject, results)
+    findProjects(rootProject, results)
     return results
 }
 
-private fun findSubprojects(rootProject: Path, results: MutableList<Path>, level: Int = 0) {
+private fun findProjects(rootProject: Path, results: MutableList<Path>, level: Int = 0) {
+    if (isProject(rootProject)) {
+        results.add(rootProject)
+    }
     rootProject.toFile().listFiles()?.forEach {
         val file = it.toPath()
         if (file.isDirectory() && isProject(file)) {
             results.add(file)
             if (level < 4)
-                findSubprojects(file, results, level + 1)
+                findProjects(file, results, level + 1)
         }
     }
 }

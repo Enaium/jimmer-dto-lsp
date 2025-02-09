@@ -17,6 +17,7 @@
 package cn.enaium.jimmer.dto.lsp.compiler
 
 import cn.enaium.jimmer.dto.lsp.Workspace
+import cn.enaium.jimmer.dto.lsp.source.Source
 import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.relativeTo
@@ -25,31 +26,40 @@ import kotlin.io.path.relativeTo
  * @author Enaium
  */
 class Context(val workspace: Workspace) {
+    private val sourceCache = mutableMapOf<String, Source>()
 
-    private val typeMap = mutableMapOf<Class<*>, ImmutableType>()
-
-    fun ofType(klass: Class<*>): ImmutableType {
-        return typeMap[klass] ?: ImmutableType(this, klass).also {
-            typeMap[klass] = it
+    fun ofSource(name: String): Source? {
+        return sourceCache[name] ?: workspace.findSource(name)?.also {
+            sourceCache[name] = it
         }
     }
 
-    fun findImmutableClass(projectDir: Path?, dto: Path, name: String): Class<*>? {
-        var immutableClass = workspace.findImmutable(name)
+    private val typeCache = mutableMapOf<String, ImmutableType>()
 
-        if (immutableClass == null && projectDir != null) {
+    fun ofType(name: String): ImmutableType? {
+        return typeCache[name] ?: workspace.findSource(name)?.let {
+            ImmutableType(this, it).also {
+                typeCache[name] = it
+            }
+        }
+    }
+
+    fun findImmutableClass(projectDir: Path?, dto: Path, name: String): Source? {
+        var source = workspace.findSource(name)
+
+        if (source == null && projectDir != null) {
             val relativeTo = dto.parent.relativeTo(projectDir)
             var path = relativeTo.toString().replace(File.separator, ".") + name
             path.substringAfter('.')
             path.substringAfter('.')
             for (i in 0 until path.count { it == '.' }) {
-                immutableClass = workspace.findImmutable(path)
-                if (immutableClass != null) {
+                source = workspace.findSource(path)
+                if (source != null) {
                     break
                 }
                 path = path.substringAfter('.')
             }
         }
-        return immutableClass
+        return source
     }
 }

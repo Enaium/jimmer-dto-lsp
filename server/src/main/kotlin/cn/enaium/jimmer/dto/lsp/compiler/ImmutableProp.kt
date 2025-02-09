@@ -16,166 +16,118 @@
 
 package cn.enaium.jimmer.dto.lsp.compiler
 
-import cn.enaium.jimmer.dto.lsp.logger
+import cn.enaium.jimmer.dto.lsp.source.Enum
+import cn.enaium.jimmer.dto.lsp.source.Immutable
 import cn.enaium.jimmer.dto.lsp.utility.toPropName
 import org.babyfish.jimmer.Formula
-import org.babyfish.jimmer.Immutable
 import org.babyfish.jimmer.dto.compiler.spi.BaseProp
 import org.babyfish.jimmer.sql.*
-import org.objectweb.asm.ClassReader
-import org.objectweb.asm.tree.ClassNode
-import kotlin.reflect.KCallable
-import kotlin.reflect.KClass
 
 /**
  * @author Enaium
  */
-class ImmutableProp(
+data class ImmutableProp(
     private val context: Context,
     val declaringType: ImmutableType,
-    val member: KCallable<*>
+    val prop: Immutable.Prop
 ) : BaseProp {
-    private val targetDeclaration = if (isList) {
-        (member.returnType.arguments[0].type?.classifier as KClass<*>?)?.java
-    } else {
-        (member.returnType.classifier as KClass<*>?)?.java
+    private val targetSource = run {
+        if (isList) {
+            context.ofSource(prop.type.substringAfter("<").substringBeforeLast(">"))
+        } else {
+            context.ofSource(prop.type)
+        }
     }
 
     private val isAssociation: Boolean =
-        (targetDeclaration?.isInterface)?.let {
-            targetDeclaration.annotations.any {
-                listOf(
-                    Entity::class.qualifiedName,
-                    MappedSuperclass::class.qualifiedName,
-                    Embeddable::class.qualifiedName,
-                    Immutable::class.qualifiedName
-                ).contains(it.annotationClass.qualifiedName)
-            }
-        } == true
+        targetSource is Immutable
 
     val targetType: ImmutableType? by lazy {
-        targetDeclaration
+        targetSource
             ?.takeIf { isAssociation }
             ?.let {
-                context.ofType(it)
+                context.ofType(it.name)
             }
     }
 
     val isGeneratedValue: Boolean =
-        member.annotations.any { it.annotationClass.qualifiedName == GeneratedValue::class.qualifiedName }
+        prop.annotations.any { it.name.endsWith(GeneratedValue::class.simpleName!!) }
 
     val enumConstants: List<String> =
-        if (targetDeclaration?.isEnum == true) {
-            targetDeclaration.enumConstants?.map { it.toString() } ?: emptyList()
+        if (targetSource is Enum) {
+            targetSource.enumConstants.map { it.toString() }
         } else {
             emptyList()
         }
 
     override val idViewBaseProp: BaseProp? = null
 
-    val isIdView: Boolean = member.annotations.any { it.annotationClass.qualifiedName == IdView::class.qualifiedName }
+    val isIdView: Boolean = prop.annotations.any { it.name.endsWith(IdView::class.simpleName!!) }
 
     override val isEmbedded: Boolean
         get() = targetType?.isEmbeddable == true
 
     override val isExcludedFromAllScalars: Boolean
-        get() = member.annotations.any { it.annotationClass.qualifiedName == ExcludeFromAllScalars::class.qualifiedName }
+        get() = prop.annotations.any { it.name.endsWith(ExcludeFromAllScalars::class.simpleName!!) }
 
     override val isFormula: Boolean =
-        member.annotations.any { it.annotationClass.qualifiedName == Formula::class.qualifiedName }
+        prop.annotations.any { it.name.endsWith(Formula::class.simpleName!!) }
 
     override val isId: Boolean =
-        member.annotations.any { it.annotationClass.qualifiedName == Id::class.qualifiedName }
+        prop.annotations.any { it.name.endsWith(Id::class.simpleName!!) }
 
     override val isKey: Boolean =
-        member.annotations.any { it.annotationClass.qualifiedName == Key::class.qualifiedName }
+        prop.annotations.any { it.name.endsWith(Key::class.simpleName!!) }
 
     override val isList: Boolean
         get() = listOf(
-            List::class,
-            Set::class,
-            Collection::class,
-            MutableList::class,
-            MutableSet::class,
-            MutableCollection::class,
-            java.util.List::class,
-            java.util.Set::class,
-            java.util.Collection::class,
-        ).contains(member.returnType.classifier)
+            "List",
+            "Set",
+            "Collection",
+            "MutableList",
+            "MutableSet",
+            "MutableCollection"
+        ).any { prop.type.startsWith("${it}<") }
 
     override val isLogicalDeleted: Boolean =
-        member.annotations.any { it.annotationClass.qualifiedName == LogicalDeleted::class.qualifiedName }
+        prop.annotations.any { it.name.endsWith(LogicalDeleted::class.simpleName!!) }
 
     override val isNullable: Boolean
-        get() {
-            var nullable = (member.returnType.isMarkedNullable
-                    || member.annotations.any { it.annotationClass.qualifiedName?.startsWith("Null") == true }
-                    || listOf(
-                java.lang.Long::class.java.name,
-                Integer::class.java.name,
-                java.lang.Short::class.java.name,
-                java.lang.Byte::class.java.name,
-                java.lang.Double::class.java.name,
-                java.lang.Float::class.java.name,
-                java.lang.Boolean::class.java.name
-            ).contains((member.returnType.classifier as KClass<*>).java.name))
-
-            fun isNullable(className: String): Boolean {
-                try {
-                    val inputStream = context.workspace.loader.getResourceAsStream(
-                        className.replace(
-                            '.',
-                            '/'
-                        ) + ".class"
-                    )
-                    val classNode = ClassNode()
-                    ClassReader(
-                        inputStream
-                    ).accept(classNode, 0)
-                    classNode.methods.forEach { method ->
-                        if (method.name.toPropName() == name) {
-                            method.invisibleAnnotations?.forEach {
-                                if (it.desc.substringAfterLast("/").startsWith("Null")) {
-                                    return true
-                                }
-                            }
-                        }
-                    }
-                } catch (_: Throwable) {
-
-                }
-                return false
-            }
-            if (!nullable) {
-                nullable = isNullable(declaringType.klass.name)
-            }
-            if (!nullable) {
-                for (it in declaringType.superTypes) {
-                    nullable = isNullable(it.klass.name)
-                    if (nullable) {
-                        break
-                    }
-                }
-            }
-            return nullable
-        }
+        get() = prop.nullable
 
     override val isRecursive: Boolean by lazy {
-        declaringType.isEntity && manyToManyViewBaseProp === null && targetDeclaration !== null && declaringType.klass.isAssignableFrom(
-            targetDeclaration
+        declaringType.source is Immutable && targetSource is Immutable && manyToManyViewBaseProp === null && isAssignableFrom(
+            declaringType.source,
+            targetSource
         )
     }
 
+    private fun isAssignableFrom(
+        i1: Immutable,
+        i2: Immutable
+    ): Boolean {
+        if (i1 == i2) {
+            return true
+        }
+        if (i1.superTypes.any {
+                val ofSource = context.ofSource(it)
+                ofSource != null && ofSource is Immutable && isAssignableFrom(ofSource, i2)
+            }) {
+            return true
+        }
+        return false
+    }
+
     override val isTransient: Boolean =
-        member.annotations.any { it.annotationClass.qualifiedName == Transient::class.qualifiedName }
+        prop.annotations.any { it.name.endsWith(Transient::class.simpleName!!) }
 
     override val manyToManyViewBaseProp: BaseProp? = null
 
     val isManyToManyView: Boolean =
-        member.annotations.any { it.annotationClass.qualifiedName == ManyToManyView::class.qualifiedName }
+        prop.annotations.any { it.name.endsWith(ManyToManyView::class.simpleName!!) }
 
     override val name: String
-        get() = member.name.toPropName()
+        get() = prop.name.toPropName()
 
     override fun hasTransientResolver(): Boolean {
         return isTransient
@@ -188,12 +140,7 @@ class ImmutableProp(
     override val isReference: Boolean
         get() = !isList && isAssociation
 
-    val propTypeName: String
-        get() = member.returnType.toString().let {
-            if (it.matches(Regex(".+[!|?]"))) {
-                it.substring(0, it.length - 1)
-            } else {
-                it
-            }
-        }
+    override fun toString(): String {
+        return name
+    }
 }

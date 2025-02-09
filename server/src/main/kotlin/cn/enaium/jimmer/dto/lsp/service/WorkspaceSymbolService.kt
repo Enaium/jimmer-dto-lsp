@@ -17,7 +17,7 @@
 package cn.enaium.jimmer.dto.lsp.service
 
 import cn.enaium.jimmer.dto.lsp.Workspace
-import cn.enaium.jimmer.dto.lsp.utility.findSubprojects
+import cn.enaium.jimmer.dto.lsp.utility.findProjects
 import cn.enaium.jimmer.dto.lsp.utility.range
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
@@ -40,7 +40,7 @@ class WorkspaceSymbolService(val workspace: Workspace) : WorkspaceServiceAdapter
     override fun symbol(params: WorkspaceSymbolParams): CompletableFuture<Either<List<SymbolInformation>, List<WorkspaceSymbol>>> {
         workspaceSymbols.clear()
         workspace.folders.forEach { folder ->
-            findSubprojects(URI.create(folder).toPath()).forEach { projectDir ->
+            findProjects(URI.create(folder).toPath()).forEach { projectDir ->
                 listOf("main", "test").forEach { source ->
                     val dtoSource = projectDir.resolve("src/$source/dto")
                     if (dtoSource.exists()) {
