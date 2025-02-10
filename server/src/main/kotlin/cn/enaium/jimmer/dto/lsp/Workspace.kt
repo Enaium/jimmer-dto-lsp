@@ -32,6 +32,7 @@ import java.net.URLClassLoader
 import java.nio.file.Path
 import java.util.concurrent.*
 import kotlin.io.path.exists
+import kotlin.io.path.extension
 import kotlin.io.path.toPath
 
 /**
@@ -45,13 +46,19 @@ data class Workspace(
     fun resolve() {
         processSource()
         if (setting.classpath.findBuilder) {
-            findBuilder()
+            CompletableFuture.runAsync {
+                findBuilder()
+            }
         }
         if (setting.classpath.findConfiguration) {
-            findConfiguration()
+            CompletableFuture.supplyAsync {
+                findConfiguration()
+            }
         }
         if (setting.classpath.findOtherProject) {
-            indexClasses(true)
+            CompletableFuture.supplyAsync {
+                indexClasses(true)
+            }
         }
     }
 
@@ -143,11 +150,11 @@ data class Workspace(
                 futures += pool.submit(Callable {
                     when (lang) {
                         Lang.JAVA -> {
-                            JavaProcessor(source).process()
+                            JavaProcessor(listOf(source)).process()
                         }
 
                         Lang.KOTLIN -> {
-                            KotlinProcessor(source).process()
+                            KotlinProcessor(listOf(source)).process()
                         }
                     }
                 })
@@ -159,6 +166,30 @@ data class Workspace(
             }
         }
         pool.shutdown()
+        client?.notifyProgress(
+            ProgressParams(
+                Either.forLeft(token),
+                Either.forLeft(WorkDoneProgressEnd().apply {
+                    message = "$token done"
+                })
+            )
+        )
+    }
+
+    fun updateSources(names: Set<String>) {
+        val token = "Update Sources"
+        client?.createProgress(WorkDoneProgressCreateParams(Either.forLeft(token)))
+        client?.notifyProgress(ProgressParams(Either.forLeft(token), Either.forLeft(WorkDoneProgressBegin().apply {
+            title = "$token in progress"
+            cancellable = false
+        })))
+        val nameSources = names.mapNotNull { sourceCache[it] }
+        JavaProcessor(nameSources.filter { it.file.extension == "java" }.map { it.file }).process().forEach {
+            sourceCache[it.name] = it
+        }
+        KotlinProcessor(nameSources.filter { it.file.extension == "kt" }.map { it.file }).process().forEach {
+            sourceCache[it.name] = it
+        }
         client?.notifyProgress(
             ProgressParams(
                 Either.forLeft(token),

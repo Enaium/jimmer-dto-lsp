@@ -21,7 +21,7 @@ import java.nio.file.Path
 /**
  * @author Enaium
  */
-abstract class AbstractProcessor(srcDir: Path) {
+abstract class AbstractProcessor(paths: List<Path>) {
 
     val needProcessedTokens = listOf(
         "Immutable",

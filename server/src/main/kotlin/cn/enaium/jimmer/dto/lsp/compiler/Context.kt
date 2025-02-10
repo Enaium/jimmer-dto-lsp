@@ -62,4 +62,8 @@ class Context(val workspace: Workspace) {
         }
         return source
     }
+
+    fun updateSources() {
+        workspace.updateSources(sourceCache.keys + typeCache.keys)
+    }
 }

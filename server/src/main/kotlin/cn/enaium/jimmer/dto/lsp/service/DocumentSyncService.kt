@@ -116,9 +116,12 @@ class DocumentSyncService(private val workspace: Workspace, documentManager: Doc
                     }
                 }, "", "", emptyList(), URI.create(uri).toFile().name))
             context.findImmutableClass(projectDir, path, documentDtoCompiler.sourceTypeName.substringAfterLast("."))
-                ?.run {
-                    val immutableType = ImmutableType(context, this)
+                ?.also {
+                    workspace.updateSources(setOf(it.name))
+                    val immutableType =
+                        ImmutableType(context, workspace.findSource(it.name) ?: throw RuntimeException("WTF?"))
                     val compile = documentDtoCompiler.compile(immutableType)
+                    context.updateSources()
                     client?.publishDiagnostics(PublishDiagnosticsParams().apply {
                         this.uri = uri
                         diagnostics = emptyList()
@@ -139,7 +142,7 @@ class DocumentSyncService(private val workspace: Workspace, documentManager: Doc
                         range = Range(Position(0, 0), Position(0, 1))
                         severity = DiagnosticSeverity.Error
                         message =
-                            "No immutable type '${documentDtoCompiler.sourceTypeName}' found. Please build the project or use the export statement."
+                            "No immutable type '${documentDtoCompiler.sourceTypeName}' found. Please use the export statement."
                     })
                 })
             }
