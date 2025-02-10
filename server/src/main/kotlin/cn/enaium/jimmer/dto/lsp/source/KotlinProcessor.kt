@@ -21,7 +21,10 @@ import KotlinParser
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import java.nio.file.Path
-import kotlin.io.path.*
+import kotlin.io.path.extension
+import kotlin.io.path.inputStream
+import kotlin.io.path.isDirectory
+import kotlin.io.path.walk
 
 /**
  * @author Enaium
@@ -48,11 +51,6 @@ class KotlinProcessor(val paths: List<Path>) : AbstractProcessor(paths) {
                     .any { needProcessedTokens.contains(it.text.substring(1)) }
                     .not()
             ) {
-                sources += Source(
-                    sourceFile.nameWithoutExtension,
-                    "",
-                    sourceFile
-                )
                 return@forEach
             }
             val kotlinParser = KotlinParser(input)

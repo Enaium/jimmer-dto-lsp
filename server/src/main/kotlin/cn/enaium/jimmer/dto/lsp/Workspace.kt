@@ -57,7 +57,7 @@ data class Workspace(
         }
         if (setting.classpath.findOtherProject) {
             CompletableFuture.supplyAsync {
-                indexClasses(true)
+                indexClasses()
             }
         }
     }
@@ -82,7 +82,7 @@ data class Workspace(
                         })
                     )
                 )
-            }.get(5, TimeUnit.SECONDS)
+            }.get(10, TimeUnit.SECONDS)
         } catch (_: TimeoutException) {
             client?.notifyProgress(
                 ProgressParams(
@@ -207,17 +207,15 @@ data class Workspace(
     private val immutableCache = mutableMapOf<String, Class<*>>()
     private val annotationCache = mutableMapOf<String, Class<*>>()
 
-    private fun findClasspath(fully: Boolean): List<Path> {
-        return (if (fully) {
-            (dependencies.values
-                    + folders.map { findClasspath(URI.create(it).toPath()) }
-                    + folders.map { findProjects(URI.create(it).toPath()) }.flatten().map { findClasspath(it) })
-        } else {
-            folders.map { findProjects(URI.create(it).toPath()) }.flatten().map { findClasspath(it) }
-        }).flatten()
+    private fun findClasspath(): List<Path> {
+        return (dependencies.values + folders.map {
+            findClasspath(
+                URI.create(it).toPath()
+            )
+        } + folders.map { findProjects(URI.create(it).toPath()) }.flatten().map { findClasspath(it) }).flatten()
     }
 
-    fun indexClasses(fully: Boolean) {
+    fun indexClasses() {
         val token = "Index Classes"
         client?.createProgress(WorkDoneProgressCreateParams(Either.forLeft(token)))
         client?.notifyProgress(ProgressParams(Either.forLeft(token), Either.forLeft(WorkDoneProgressBegin().apply {
@@ -226,17 +224,18 @@ data class Workspace(
         })))
 
         val classpath =
-            findClasspath(fully) + listOf(Main::class.java.protectionDomain.codeSource.location.toURI().toPath())
+            findClasspath() + listOf(Main::class.java.protectionDomain.codeSource.location.toURI().toPath())
         loader = URLClassLoader((classpath.map { it.toUri().toURL() }).toTypedArray())
 
-        if (fully) {
-            classCache.clear()
-            immutableCache.clear()
-            annotationCache.clear()
-        }
+        classCache.clear()
+        immutableCache.clear()
+        annotationCache.clear()
 
         val classNames = findClassNames(classpath)
         classNames.forEach { name ->
+            if (name.startsWith(Main::class.java.packageName)) {
+                return@forEach
+            }
             try {
                 loader[name]?.run {
                     if (this.isAnnotation) {
@@ -268,6 +267,7 @@ data class Workspace(
         )
     }
 
+
     fun findAnnotationNames(): List<String> {
         return annotationCache.values.map { it.name }
     }
@@ -282,6 +282,10 @@ data class Workspace(
 
     fun findSource(name: String): Source? {
         return sourceCache[name]
+    }
+
+    fun findSources(): List<Source> {
+        return sourceCache.values.toList()
     }
 
     operator fun ClassLoader.get(name: String?): Class<*>? {
