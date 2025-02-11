@@ -21,30 +21,16 @@ import KotlinParser
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import java.nio.file.Path
-import kotlin.io.path.extension
-import kotlin.io.path.inputStream
-import kotlin.io.path.isDirectory
-import kotlin.io.path.walk
 
 /**
  * @author Enaium
  */
-class KotlinProcessor(val paths: List<Path>) : AbstractProcessor(paths) {
+class KotlinProcessor(paths: List<Path>) : AbstractProcessor(paths) {
     override fun process(): List<Source> {
-        val sourceFiles = paths.mapNotNull {
-            if (it.isDirectory()) {
-                it.walk().filter { it.extension == "kt" }.toList()
-            } else if (it.extension == "kt") {
-                listOf(it)
-            } else {
-                null
-            }
-        }.flatten()
-
         val sources = mutableListOf<Source>()
-        sourceFiles.forEach { sourceFile ->
+        getSourceFiles("kt").forEach { (sourceFile, inputStream) ->
             val kotlinLexer =
-                KotlinLexer(CharStreams.fromStream(sourceFile.inputStream()))
+                KotlinLexer(CharStreams.fromStream(inputStream))
             val input = CommonTokenStream(kotlinLexer)
             input.fill()
             if (input.tokens

@@ -16,6 +16,7 @@
 
 package cn.enaium.jimmer.dto.lsp
 
+import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import java.nio.file.Path
@@ -33,7 +34,6 @@ data class Setting(
     }
 
     data class Classpath(
-        val findBuilder: Boolean = true,
         val findConfiguration: Boolean = true,
         val findOtherProject: Boolean = true
     )
@@ -41,8 +41,11 @@ data class Setting(
     companion object
 }
 
+private val jacksonObjectMapper =
+    jacksonObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+
 fun Setting.Companion.read(path: Path): Setting {
-    return jacksonObjectMapper().setPropertyNamingStrategy(PropertyNamingStrategies.UPPER_CAMEL_CASE)
+    return jacksonObjectMapper.setPropertyNamingStrategy(PropertyNamingStrategies.UPPER_CAMEL_CASE)
         .readValue(path.toFile(), Setting::class.java)
 }
 

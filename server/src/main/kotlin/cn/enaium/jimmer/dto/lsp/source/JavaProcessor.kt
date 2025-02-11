@@ -21,29 +21,15 @@ import JavaParser
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import java.nio.file.Path
-import kotlin.io.path.extension
-import kotlin.io.path.inputStream
-import kotlin.io.path.isDirectory
-import kotlin.io.path.walk
 
 /**
  * @author Enaium
  */
-class JavaProcessor(val paths: List<Path>) : AbstractProcessor(paths) {
+class JavaProcessor(paths: List<Path>) : AbstractProcessor(paths) {
     override fun process(): List<Source> {
-        val sourceFiles = paths.mapNotNull {
-            if (it.isDirectory()) {
-                it.walk().filter { it.extension == "java" }.toList()
-            } else if (it.extension == "java") {
-                listOf(it)
-            } else {
-                null
-            }
-        }.flatten()
-
         val sources = mutableListOf<Source>()
-        sourceFiles.forEach { sourceFile ->
-            val javaLexer = JavaLexer(CharStreams.fromStream(sourceFile.inputStream()))
+        getSourceFiles("java").forEach { (sourceFile, inputStream) ->
+            val javaLexer = JavaLexer(CharStreams.fromStream(inputStream))
             val input = CommonTokenStream(javaLexer)
             input.fill()
             if (input.tokens

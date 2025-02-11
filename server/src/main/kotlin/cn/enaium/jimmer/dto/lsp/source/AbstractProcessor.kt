@@ -16,12 +16,15 @@
 
 package cn.enaium.jimmer.dto.lsp.source
 
+import java.io.InputStream
 import java.nio.file.Path
+import java.util.jar.JarFile
+import kotlin.io.path.*
 
 /**
  * @author Enaium
  */
-abstract class AbstractProcessor(paths: List<Path>) {
+abstract class AbstractProcessor(val paths: List<Path>) {
 
     val needProcessedTokens = listOf(
         "Immutable",
@@ -32,4 +35,30 @@ abstract class AbstractProcessor(paths: List<Path>) {
     )
 
     abstract fun process(): List<Source>
+
+    fun getSourceFiles(suffix: String): List<Pair<Path, InputStream>> {
+        val sourceFiles = paths.filter { it.exists() }.mapNotNull {
+            if (it.isDirectory()) {
+                it.walk().filter { it.extension == suffix }.toList()
+            } else if (it.extension == suffix) {
+                listOf(it)
+            } else {
+                null
+            }
+        }.flatten().map { it to it.inputStream() }.toMutableList()
+
+        paths.forEach {
+            if (it.extension == "jar") {
+                val jarFile = JarFile(it.toFile())
+                val entries = jarFile.entries()
+                while (entries.hasMoreElements()) {
+                    val entry = entries.nextElement()
+                    if (entry.name.endsWith(".$suffix")) {
+                        sourceFiles += it to jarFile.getInputStream(entry)
+                    }
+                }
+            }
+        }
+        return sourceFiles
+    }
 }

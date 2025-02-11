@@ -23,6 +23,8 @@ dependencies {
     implementation(libs.jackson)
     implementation(libs.jackson.kotlin)
     implementation(libs.asm.tree)
+    implementation(libs.jackson.dataformat.xml)
+    implementation(libs.tomlj)
     antlr(libs.antlr)
 
     testImplementation(kotlin("test"))

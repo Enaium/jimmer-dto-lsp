@@ -141,7 +141,7 @@ class DocumentCompletionService(private val workspace: Workspace, documentManage
                 }
 
                 completionClass(TokenType.EXPORT.literal()) {
-                    (workspace.findImmutableNames() + workspace.findSources()
+                    (workspace.findSources()
                         .map { "${it.packageName}.${it.name}" }).toSet()
                 }
                 completionClass(TokenType.IMPORT.literal()) { workspace.findClassNames().toSet() }
