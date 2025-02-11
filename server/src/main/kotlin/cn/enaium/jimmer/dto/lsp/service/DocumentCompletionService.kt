@@ -121,7 +121,7 @@ class DocumentCompletionService(private val workspace: Workspace, documentManage
                 val realTimeTokens =
                     document.realTime.commonToken.tokens.filter { it.channel == DtoLexer.DEFAULT_TOKEN_CHANNEL }
 
-                fun completionClass(keyword: String, names: () -> List<String>) {
+                fun completionClass(keyword: String, names: () -> Set<String>) {
                     val currentLineTokens =
                         realTimeTokens.filter { it.line - 1 == params.position.line && it.type != DtoLexer.EOF }
                     if (currentLineTokens.size > 1 && currentLineTokens.first()?.text == keyword) {
@@ -140,8 +140,11 @@ class DocumentCompletionService(private val workspace: Workspace, documentManage
                     }
                 }
 
-                completionClass(TokenType.EXPORT.literal()) { workspace.findImmutableNames() }
-                completionClass(TokenType.IMPORT.literal()) { workspace.findClassNames() }
+                completionClass(TokenType.EXPORT.literal()) {
+                    (workspace.findSources()
+                        .map { "${it.packageName}.${it.name}" }).toSet()
+                }
+                completionClass(TokenType.IMPORT.literal()) { workspace.findClassNames().toSet() }
 
                 val callTraceToRange = mutableMapOf<String, Pair<Token, Token>>()
                 val callTraceToProps = mutableMapOf<String, List<ImmutableProp>>()

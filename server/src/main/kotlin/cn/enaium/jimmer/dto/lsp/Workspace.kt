@@ -16,20 +16,33 @@
 
 package cn.enaium.jimmer.dto.lsp
 
-import cn.enaium.jimmer.dto.lsp.utility.*
+import cn.enaium.jimmer.dto.lsp.source.JavaProcessor
+import cn.enaium.jimmer.dto.lsp.source.KotlinProcessor
+import cn.enaium.jimmer.dto.lsp.source.Lang
+import cn.enaium.jimmer.dto.lsp.source.Source
+import cn.enaium.jimmer.dto.lsp.utility.findClassNames
+import cn.enaium.jimmer.dto.lsp.utility.findClasspath
+import cn.enaium.jimmer.dto.lsp.utility.findProjects
+import com.fasterxml.jackson.dataformat.xml.XmlMapper
 import org.babyfish.jimmer.Immutable
 import org.babyfish.jimmer.sql.Embeddable
 import org.babyfish.jimmer.sql.Entity
 import org.babyfish.jimmer.sql.MappedSuperclass
-import org.eclipse.lsp4j.*
+import org.eclipse.lsp4j.ProgressParams
+import org.eclipse.lsp4j.WorkDoneProgressBegin
+import org.eclipse.lsp4j.WorkDoneProgressCreateParams
+import org.eclipse.lsp4j.WorkDoneProgressEnd
 import org.eclipse.lsp4j.jsonrpc.messages.Either
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.Opcodes
+import org.objectweb.asm.Type
+import org.objectweb.asm.tree.ClassNode
+import org.tomlj.Toml
 import java.net.URI
 import java.net.URLClassLoader
 import java.nio.file.Path
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
-import kotlin.io.path.toPath
+import java.util.concurrent.*
+import kotlin.io.path.*
 
 /**
  * @author Enaium
@@ -37,66 +50,72 @@ import kotlin.io.path.toPath
 data class Workspace(
     var setting: Setting = Setting(),
     val folders: MutableList<String> = mutableListOf(),
-    val dependencies: MutableMap<String, List<Path>> = mutableMapOf()
+    private val dependencies: MutableList<Path> = mutableListOf()
 ) {
     fun resolve() {
-        if (setting.classpath.findBuilder) {
-            findBuilder()
-        }
+        val projects = folders.map { findProjects(URI.create(it).toPath()) }.flatten()
         if (setting.classpath.findConfiguration) {
-            findConfiguration()
+            findConfiguration(projects)
         }
         if (setting.classpath.findOtherProject) {
-            indexClasses(true)
+            indexClasses()
         }
+        processSource(projects)
     }
 
-    private fun findBuilder() {
-        val token = "Find Dependencies By Command"
-        client?.createProgress(WorkDoneProgressCreateParams(Either.forLeft(token)))
-        client?.notifyProgress(ProgressParams(Either.forLeft(token), Either.forLeft(WorkDoneProgressBegin().apply {
-            title = "$token in progress"
-            cancellable = false
-        })))
-        try {
-            CompletableFuture.supplyAsync {
-                folders.forEach {
-                    dependencies += findDependenciesByCommand(URI.create(it).toPath())
-                }
-                client?.notifyProgress(
-                    ProgressParams(
-                        Either.forLeft(token),
-                        Either.forLeft(WorkDoneProgressEnd().apply {
-                            message = "$token done"
-                        })
-                    )
-                )
-            }.get(5, TimeUnit.SECONDS)
-        } catch (_: TimeoutException) {
-            client?.notifyProgress(
-                ProgressParams(
-                    Either.forLeft(token),
-                    Either.forLeft(WorkDoneProgressEnd().apply {
-                        message = "$token timeout"
-                    })
-                )
-            )
-            client?.showMessage(MessageParams().apply {
-                message = "Resolve Dependencies timeout, please resolve dependencies manually"
-                type = MessageType.Warning
-            })
-        }
-    }
-
-    private fun findConfiguration() {
+    private fun findConfiguration(projects: List<Path>) {
         val token = "Find Dependencies By Configuration"
         client?.createProgress(WorkDoneProgressCreateParams(Either.forLeft(token)))
         client?.notifyProgress(ProgressParams(Either.forLeft(token), Either.forLeft(WorkDoneProgressBegin().apply {
             title = "$token in progress"
             cancellable = false
         })))
-        folders.forEach {
-            dependencies += findDependenciesByConfiguration(URI.create(it).toPath())
+        projects.forEach { project ->
+            project.resolve("pom.xml").takeIf { it.exists() }?.also { pomPath ->
+                val pomTree = XmlMapper().readTree(pomPath.toFile())
+                val properties = pomTree["properties"]
+                val dependencies = pomTree["dependencies"] ?: return@forEach
+                dependencies.forEach { dependency ->
+                    val groupId = dependency["groupId"]?.asText() ?: return@forEach
+                    val artifactId = dependency["artifactId"]?.asText() ?: return@forEach
+                    val version = dependency["version"]?.asText()
+                        ?.let { properties?.get(it.substringAfter("\${").substringBefore("}"))?.asText() ?: it }
+                        ?: return@forEach
+                    Path(System.getProperty("user.home")).resolve(".m2")
+                        .resolve("repository").resolve(groupId.replace(".", "/")).resolve(artifactId)
+                        .resolve(version).resolve("$artifactId-$version.jar").takeIf { it.exists() }?.also { jarPath ->
+                            this.dependencies.add(jarPath)
+                        }
+                }
+            }
+        }
+
+        folders.forEach { folder ->
+            URI.create(folder).toPath().resolve("gradle").walk().filter { it.extension == "toml" }
+                .forEach { tomlPath ->
+                    val toml = Toml.parse(tomlPath)
+                    val versions = toml.getTable("versions")
+                    toml.getTable("libraries")?.also {
+                        it.keySet().forEach { key ->
+                            val dependency = it.getTable(key) ?: return@forEach
+                            val module = dependency.getString("module") ?: dependency.getString("group")
+                                ?.let { group -> dependency.getString("name")?.let { name -> "$group:$name" } }
+                            ?: return@forEach
+                            val group = module.substringBefore(":")
+                            val name = module.substringAfter(":")
+
+                            val version = versions?.getString(
+                                dependency.getString("version.ref") ?: dependency.getString("version") ?: return@forEach
+                            ) ?: return@forEach
+                            Path(System.getProperty("user.home")).resolve(".gradle")
+                                .resolve("caches").resolve("modules-2").resolve("files-2.1")
+                                .resolve(group).resolve(name).resolve(version).walk()
+                                .find { it.name == "$name-$version.jar" }?.takeIf { it.exists() }?.also { jarPath ->
+                                    this.dependencies.add(jarPath)
+                                }
+                        }
+                    }
+                }
         }
         client?.notifyProgress(
             ProgressParams(
@@ -108,24 +127,100 @@ data class Workspace(
         )
     }
 
-    var loader = URLClassLoader(emptyArray(), Main::class.java.classLoader)
-        private set
+    private val sourceDirs = mapOf(
+        Lang.JAVA to "src/main/java",
+        Lang.JAVA to "src/test/java",
+        Lang.KOTLIN to "src/main/kotlin",
+        Lang.KOTLIN to "src/test/kotlin"
+    )
 
-    private val classCache = mutableMapOf<String, Class<*>>()
-    private val immutableCache = mutableMapOf<String, Class<*>>()
-    private val annotationCache = mutableMapOf<String, Class<*>>()
+    private val sourceCache = mutableMapOf<String, Source>()
 
-    private fun findClasspath(fully: Boolean): List<Path> {
-        return (if (fully) {
-            (dependencies.values
-                    + folders.map { findClasspath(URI.create(it).toPath()) }
-                    + folders.map { findSubprojects(URI.create(it).toPath()) }.flatten().map { findClasspath(it) })
-        } else {
-            folders.map { findSubprojects(URI.create(it).toPath()) }.flatten().map { findClasspath(it) }
-        }).flatten()
+    private fun processSource(projects: List<Path>) {
+        val token = "Process Source"
+        client?.createProgress(WorkDoneProgressCreateParams(Either.forLeft(token)))
+        client?.notifyProgress(ProgressParams(Either.forLeft(token), Either.forLeft(WorkDoneProgressBegin().apply {
+            title = "$token in progress"
+            cancellable = false
+        })))
+        val pool = ThreadPoolExecutor(
+            Runtime.getRuntime().availableProcessors() * 2,
+            Runtime.getRuntime().availableProcessors() * 4,
+            60L,
+            TimeUnit.SECONDS,
+            LinkedBlockingQueue()
+        )
+        val futures = mutableListOf<Future<List<Source>>>()
+        projects.forEach { project ->
+            sourceDirs.forEach { (lang, dir) ->
+                val source = project.resolve(dir)
+                if (source.exists().not()) return@forEach
+                futures += pool.submit(Callable {
+                    when (lang) {
+                        Lang.JAVA -> {
+                            JavaProcessor(listOf(source)).process()
+                        }
+
+                        Lang.KOTLIN -> {
+                            KotlinProcessor(listOf(source)).process()
+                        }
+                    }
+                })
+            }
+        }
+        futures.forEach {
+            it.get().forEach { source ->
+                sourceCache[source.name] = source
+            }
+        }
+        pool.shutdown()
+        client?.notifyProgress(
+            ProgressParams(
+                Either.forLeft(token),
+                Either.forLeft(WorkDoneProgressEnd().apply {
+                    message = "$token done"
+                })
+            )
+        )
     }
 
-    fun indexClasses(fully: Boolean) {
+    fun updateSources(names: Set<String>) {
+        val token = "Update Sources"
+        client?.createProgress(WorkDoneProgressCreateParams(Either.forLeft(token)))
+        client?.notifyProgress(ProgressParams(Either.forLeft(token), Either.forLeft(WorkDoneProgressBegin().apply {
+            title = "$token in progress"
+            cancellable = false
+        })))
+        val nameSources = names.mapNotNull { sourceCache[it] }
+        JavaProcessor(nameSources.filter { it.file.extension == "java" }.map { it.file }).process().forEach {
+            sourceCache[it.name] = it
+        }
+        KotlinProcessor(nameSources.filter { it.file.extension == "kt" }.map { it.file }).process().forEach {
+            sourceCache[it.name] = it
+        }
+        client?.notifyProgress(
+            ProgressParams(
+                Either.forLeft(token),
+                Either.forLeft(WorkDoneProgressEnd().apply {
+                    message = "$token done"
+                })
+            )
+        )
+    }
+
+    private val classCache = mutableSetOf<String>()
+    private val annotationCache = mutableSetOf<String>()
+
+    private fun findClasspath(): List<Path> {
+        return (dependencies + folders.map {
+            findClasspath(
+                URI.create(it).toPath()
+            )
+        }.flatten() + folders.map { findProjects(URI.create(it).toPath()) }.flatten().map { findClasspath(it) }
+            .flatten())
+    }
+
+    fun indexClasses() {
         val token = "Index Classes"
         client?.createProgress(WorkDoneProgressCreateParams(Either.forLeft(token)))
         client?.notifyProgress(ProgressParams(Either.forLeft(token), Either.forLeft(WorkDoneProgressBegin().apply {
@@ -134,35 +229,54 @@ data class Workspace(
         })))
 
         val classpath =
-            findClasspath(fully) + listOf(Main::class.java.protectionDomain.codeSource.location.toURI().toPath())
-        loader = URLClassLoader((classpath.map { it.toUri().toURL() }).toTypedArray())
+            findClasspath() + listOf(Main::class.java.protectionDomain.codeSource.location.toURI().toPath())
+        val loader = URLClassLoader((classpath.map { it.toUri().toURL() }).toTypedArray())
 
-        if (fully) {
-            classCache.clear()
-            immutableCache.clear()
-            annotationCache.clear()
-        }
+        classCache.clear()
+        annotationCache.clear()
 
         val classNames = findClassNames(classpath)
-        classNames.forEach { name ->
-            try {
-                loader[name]?.run {
-                    if (this.isAnnotation) {
-                        annotationCache[name] = this
-                    } else if (this.annotations.any {
-                            listOf(
-                                Entity::class,
-                                MappedSuperclass::class,
-                                Embeddable::class,
-                                Immutable::class
-                            ).contains(it.annotationClass)
-                        }) {
-                        immutableCache[name] = this
-                    } else {
-                        classCache[name] = this
-                    }
+        val hasImmutableJars = mutableSetOf<Path>()
+        classNames.forEach { (path, name) ->
+            if (name.startsWith(Main::class.java.packageName)) {
+                return@forEach
+            }
+
+            val classReader = ClassReader(loader.getResourceAsStream(name.replace(".", "/") + ".class"))
+            val classNode = ClassNode()
+            classReader.accept(classNode, 0)
+            if (classNode.access == Opcodes.ACC_PUBLIC or Opcodes.ACC_INTERFACE or Opcodes.ACC_ABSTRACT or Opcodes.ACC_ANNOTATION) {
+                annotationCache.add(name)
+            } else if (classNode.visibleAnnotations?.any {
+                    listOf(
+                        Entity::class,
+                        MappedSuperclass::class,
+                        Embeddable::class,
+                        Immutable::class
+                    ).any { ia -> Type.getDescriptor(ia.java) == it.desc }
+                } == true) {
+                if (path.extension == "jar") {
+                    hasImmutableJars.add(path)
                 }
-            } catch (_: Throwable) {
+            } else {
+                classCache.add(name)
+            }
+        }
+
+        hasImmutableJars.forEach { jar ->
+            var sourceJar = jar.parent.resolve("${jar.nameWithoutExtension}-sources.jar")
+
+            if (sourceJar.exists().not()) {
+                jar.parent.parent.walk().find { it.name == "${jar.nameWithoutExtension}-sources.jar" }?.also {
+                    sourceJar = it
+                }
+            }
+
+            JavaProcessor(listOf(sourceJar)).process().forEach { source ->
+                sourceCache[source.name] = source
+            }
+            KotlinProcessor(listOf(sourceJar)).process().forEach { source ->
+                sourceCache[source.name] = source
             }
         }
 
@@ -176,38 +290,20 @@ data class Workspace(
         )
     }
 
-    fun findAnnotationNames(): List<String> {
-        return annotationCache.values.map { it.name }
+
+    fun findAnnotationNames(): Set<String> {
+        return annotationCache
     }
 
-    fun findImmutableNames(): List<String> {
-        return immutableCache.values.map { it.name }
+    fun findClassNames(): Set<String> {
+        return classCache
     }
 
-    fun findClassNames(): List<String> {
-        return classCache.values.map { it.name }
+    fun findSource(name: String): Source? {
+        return sourceCache[name]
     }
 
-    fun findClass(name: String): Class<*>? {
-        return classCache[name]
-    }
-
-    fun findImmutable(name: String): Class<*>? {
-        return immutableCache[name]
-    }
-
-    fun findAnnotation(name: String): Class<*>? {
-        return annotationCache[name]
-    }
-
-    operator fun ClassLoader.get(name: String?): Class<*>? {
-        if (name == null) {
-            return null
-        }
-        return try {
-            loadClass(name)
-        } catch (_: Throwable) {
-            return null
-        }
+    fun findSources(): List<Source> {
+        return sourceCache.values.toList()
     }
 }

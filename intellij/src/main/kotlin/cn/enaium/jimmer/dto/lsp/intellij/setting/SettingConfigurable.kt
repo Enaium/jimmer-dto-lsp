@@ -41,7 +41,6 @@ class SettingConfigurable : Configurable {
             PluginSetting.Setting.JimmerDTO.Formatting.PropsSpaceLine.values().forEach { addItem(it) }
         }
 
-    private val classpathFindBuilder: JBCheckBox = JBCheckBox("Find Builder")
     private val classpathFindConfiguration: JBCheckBox = JBCheckBox("Find Configuration")
     private val classpathFindOtherProject: JBCheckBox = JBCheckBox("Find Other Project")
     private val useJetBrainsRuntime: JBCheckBox = JBCheckBox("Use JetBrains Runtime")
@@ -52,7 +51,6 @@ class SettingConfigurable : Configurable {
         builder.addComponent(JXTitledSeparator("Formatting"))
         builder.addLabeledComponent(JLabel("Props Space Line"), formattingPropsSpaceLine, 1, false)
         builder.addComponent(JXTitledSeparator("Classpath"))
-        builder.addComponent(classpathFindBuilder, 1)
         builder.addComponent(classpathFindConfiguration, 1)
         builder.addComponent(classpathFindOtherProject, 1)
         builder.addComponent(JXTitledSeparator("Other"))
@@ -63,7 +61,6 @@ class SettingConfigurable : Configurable {
     override fun isModified(): Boolean {
         val settings = PluginSetting.INSTANCE.state
         return settings.jimmerDTO.formatting.propsSpaceLine != formattingPropsSpaceLine.selectedItem ||
-                settings.jimmerDTO.classpath.findBuilder != classpathFindBuilder.isSelected ||
                 settings.jimmerDTO.classpath.findConfiguration != classpathFindConfiguration.isSelected ||
                 settings.jimmerDTO.classpath.findOtherProject != classpathFindOtherProject.isSelected ||
                 settings.useJetBrainsRuntime != useJetBrainsRuntime.isSelected
@@ -73,7 +70,6 @@ class SettingConfigurable : Configurable {
         val settings = PluginSetting.INSTANCE.state
         settings.jimmerDTO.formatting.propsSpaceLine =
             formattingPropsSpaceLine.selectedItem as PluginSetting.Setting.JimmerDTO.Formatting.PropsSpaceLine
-        settings.jimmerDTO.classpath.findBuilder = classpathFindBuilder.isSelected
         settings.jimmerDTO.classpath.findConfiguration = classpathFindConfiguration.isSelected
         settings.jimmerDTO.classpath.findOtherProject = classpathFindOtherProject.isSelected
         settings.useJetBrainsRuntime = useJetBrainsRuntime.isSelected
@@ -93,7 +89,6 @@ class SettingConfigurable : Configurable {
     override fun reset() {
         val settings = PluginSetting.INSTANCE.state
         formattingPropsSpaceLine.selectedItem = settings.jimmerDTO.formatting.propsSpaceLine
-        classpathFindBuilder.isSelected = settings.jimmerDTO.classpath.findBuilder
         classpathFindConfiguration.isSelected = settings.jimmerDTO.classpath.findConfiguration
         classpathFindOtherProject.isSelected = settings.jimmerDTO.classpath.findOtherProject
         useJetBrainsRuntime.isSelected = settings.useJetBrainsRuntime

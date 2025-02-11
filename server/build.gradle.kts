@@ -1,6 +1,10 @@
+import org.gradle.kotlin.dsl.withType
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.shadow)
+    antlr
 }
 
 val archiveName = "jimmer-dto-lsp"
@@ -19,6 +23,9 @@ dependencies {
     implementation(libs.jackson)
     implementation(libs.jackson.kotlin)
     implementation(libs.asm.tree)
+    implementation(libs.jackson.dataformat.xml)
+    implementation(libs.tomlj)
+    antlr(libs.antlr)
 
     testImplementation(kotlin("test"))
     implementation(kotlin("reflect"))
@@ -30,6 +37,14 @@ kotlin {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+tasks.withType<Jar>().configureEach {
+    dependsOn(tasks.withType<AntlrTask>())
+}
+
+tasks.withType<KotlinCompile>().configureEach {
+    dependsOn(tasks.withType<AntlrTask>())
 }
 
 tasks.shadowJar {

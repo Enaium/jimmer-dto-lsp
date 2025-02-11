@@ -16,12 +16,11 @@
 
 package cn.enaium.jimmer.dto.lsp.compiler
 
+import cn.enaium.jimmer.dto.lsp.source.Immutable
 import org.babyfish.jimmer.dto.compiler.DtoCompiler
 import org.babyfish.jimmer.dto.compiler.DtoFile
 import org.babyfish.jimmer.dto.compiler.PropConfig
 import org.babyfish.jimmer.dto.compiler.SimplePropType
-import java.math.BigDecimal
-import java.math.BigInteger
 
 /**
  * @author Enaium
@@ -49,42 +48,51 @@ class DocumentDtoCompiler(dtoFile: DtoFile) : DtoCompiler<ImmutableType, Immutab
         baseProp.enumConstants
 
     override fun getSimplePropType(baseProp: ImmutableProp): SimplePropType? =
-        simplePropMap[baseProp.propTypeName] ?: SimplePropType.NONE
+        simplePropType(baseProp.prop.type)
 
 
     override fun getSimplePropType(pathNode: PropConfig.PathNode<ImmutableProp>): SimplePropType? =
-        simplePropMap[
+        simplePropType(
             if (pathNode.isAssociatedId) {
-                pathNode.prop.targetType!!.idProp!!.propTypeName
+                pathNode.prop.targetType!!.idProp!!.prop.type
             } else {
-                pathNode.prop.propTypeName
+                pathNode.prop.prop.type
             }
-        ] ?: SimplePropType.NONE
+        )
 
     override fun isSameType(baseProp1: ImmutableProp, baseProp2: ImmutableProp): Boolean =
         baseProp1.declaringType.qualifiedName == baseProp2.declaringType.qualifiedName
 
     override fun getGenericTypeCount(qualifiedName: String): Int =
-        baseType.klass.typeParameters.size
+        if (baseType.source is Immutable) {
+            (baseType.source as Immutable).typeParameters.size
+        } else {
+            0
+        }
 
-    private val simplePropMap = mapOf<String, SimplePropType>(
-        "kotlin.String" to SimplePropType.STRING,
-        "kotlin.Int" to SimplePropType.INT,
-        "kotlin.Long" to SimplePropType.LONG,
-        "kotlin.Float" to SimplePropType.FLOAT,
-        "kotlin.Double" to SimplePropType.DOUBLE,
-        "kotlin.Boolean" to SimplePropType.BOOLEAN,
-        "kotlin.Byte" to SimplePropType.BYTE,
-        "kotlin.Short" to SimplePropType.SHORT,
-        BigInteger::class.java.name to SimplePropType.BIG_INTEGER,
-        BigDecimal::class.java.name to SimplePropType.BIG_DECIMAL,
-        String::class.java.name to SimplePropType.STRING,
-        Int::class.java.name to SimplePropType.INT,
-        Long::class.java.name to SimplePropType.LONG,
-        Float::class.java.name to SimplePropType.FLOAT,
-        Double::class.java.name to SimplePropType.DOUBLE,
-        Boolean::class.java.name to SimplePropType.BOOLEAN,
-        Byte::class.java.name to SimplePropType.BYTE,
-        Short::class.java.name to SimplePropType.SHORT
-    )
+    private fun simplePropType(type: String): SimplePropType {
+        if (type.endsWith("String")) {
+            return SimplePropType.STRING
+        } else if (type.endsWith("Int") || type.endsWith("Integer") || type.endsWith("int")) {
+            return SimplePropType.INT
+        } else if (type.endsWith("Long") || type.endsWith("long")) {
+            return SimplePropType.LONG
+        } else if (type.endsWith("Float") || type.endsWith("float")) {
+            return SimplePropType.FLOAT
+        } else if (type.endsWith("Double") || type.endsWith("double")) {
+            return SimplePropType.DOUBLE
+        } else if (type.endsWith("Boolean") || type.endsWith("boolean")) {
+            return SimplePropType.BOOLEAN
+        } else if (type.endsWith("Byte") || type.endsWith("byte")) {
+            return SimplePropType.BYTE
+        } else if (type.endsWith("Short") || type.endsWith("short")) {
+            return SimplePropType.SHORT
+        } else if (type.endsWith("BigInteger")) {
+            return SimplePropType.BIG_INTEGER
+        } else if (type.endsWith("BigDecimal")) {
+            return SimplePropType.BIG_DECIMAL
+        } else {
+            return SimplePropType.NONE
+        }
+    }
 }

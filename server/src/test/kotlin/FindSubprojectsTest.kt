@@ -1,4 +1,4 @@
-import cn.enaium.jimmer.dto.lsp.utility.findSubprojects
+import cn.enaium.jimmer.dto.lsp.utility.findProjects
 import kotlin.io.path.Path
 import kotlin.io.path.name
 import kotlin.test.Test
@@ -29,7 +29,7 @@ class FindSubprojectsTest {
         val start = System.currentTimeMillis()
         val project = Path("D:\\Projects\\jimmer\\project\\")
         assertContentEquals(
-            findSubprojects(project).map { it.name },
+            findProjects(project).map { it.name },
             listOf(
                 "buildSrc",
                 "jimmer-apt",

@@ -17,7 +17,6 @@
 package cn.enaium.jimmer.dto.lsp.intellij.setting
 
 import cn.enaium.jimmer.dto.lsp.intellij.Constants
-import com.google.gson.annotations.Expose
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
@@ -48,7 +47,6 @@ class PluginSetting : PersistentStateComponent<PluginSetting.Setting> {
             }
 
             data class Classpath(
-                var findBuilder: Boolean = true,
                 var findConfiguration: Boolean = true,
                 var findOtherProject: Boolean = true
             )

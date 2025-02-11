@@ -20,7 +20,6 @@ import cn.enaium.jimmer.dto.lsp.DtoDocument
 import cn.enaium.jimmer.dto.lsp.Main
 import cn.enaium.jimmer.dto.lsp.compiler.ImmutableProp
 import cn.enaium.jimmer.dto.lsp.compiler.ImmutableType
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import org.antlr.v4.runtime.Token
@@ -101,28 +100,6 @@ private fun findClasspath(path: Path, results: MutableList<Path>) {
             results.add(file)
         }
     }
-}
-
-fun findDependenciesByConfiguration(project: Path): Map<String, List<Path>> {
-    val results = mutableMapOf<String, List<Path>>()
-    val lspHome = Main::class.java.protectionDomain.codeSource.location.toURI().toPath().parent
-    lspHome.resolve("dependencies.json").takeIf { it.exists() }?.also {
-        val dependenciesJson = ObjectMapper().readTree(it.toFile())
-        dependenciesJson[project.absolutePathString().let { projectPath ->
-            if (projectPath.first() != '/') {
-                projectPath.first().uppercase() + projectPath.substring(1)
-            } else {
-                projectPath
-            }
-        }]?.forEach { dependency ->
-            Path(dependency.asText()).also { path ->
-                if (path.exists()) {
-                    results[project.name] = findClasspath(path)
-                }
-            }
-        }
-    }
-    return results
 }
 
 fun findDependenciesByCommand(project: Path): Map<String, List<Path>> {
@@ -230,30 +207,33 @@ fun findProjectDir(dtoPath: Path, root: Boolean = false): Path? {
     return rootPath
 }
 
-fun findSubprojects(rootProject: Path): List<Path> {
+fun findProjects(rootProject: Path): List<Path> {
     val results = mutableListOf<Path>()
-    findSubprojects(rootProject, results)
+    findProjects(rootProject, results)
     return results
 }
 
-private fun findSubprojects(rootProject: Path, results: MutableList<Path>, level: Int = 0) {
+private fun findProjects(rootProject: Path, results: MutableList<Path>, level: Int = 0) {
+    if (isProject(rootProject)) {
+        results.add(rootProject)
+    }
     rootProject.toFile().listFiles()?.forEach {
         val file = it.toPath()
         if (file.isDirectory() && isProject(file)) {
             results.add(file)
             if (level < 4)
-                findSubprojects(file, results, level + 1)
+                findProjects(file, results, level + 1)
         }
     }
 }
 
-fun findClassNames(classpath: List<Path>): List<String> {
-    val results = mutableListOf<String>()
+fun findClassNames(classpath: List<Path>): List<Pair<Path, String>> {
+    val results = mutableListOf<Pair<Path, String>>()
     classpath.forEach { cp ->
         if (cp.isDirectory()) {
             cp.walk().filter { it.extension == "class" && !it.name.contains("$") }.forEach { classFile ->
                 val name = classFile.relativeTo(cp).pathString.substringBeforeLast(".").replace(File.separator, ".")
-                results.add(name)
+                results.add(classFile to name)
             }
         } else if (cp.extension == "jar") {
             val jarFile = cp.toFile()
@@ -266,7 +246,7 @@ fun findClassNames(classpath: List<Path>): List<String> {
                     && !listOf("META-INF", "module-info.class", "$").any { entry.name.contains(it) }
                 ) {
                     val name = entry.name.substringBeforeLast(".").replace("/", ".")
-                    results.add(name)
+                    results.add(cp to name)
                 }
             }
             jar.close()

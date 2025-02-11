@@ -57,10 +57,6 @@ class DocumentSyncService(private val workspace: Workspace, documentManager: Doc
     }
 
     private fun validate(content: String, uri: String, type: Type) {
-        if (type == Type.SAVE) {
-            workspace.indexClasses(false)
-        }
-
         val path = URI.create(uri).toPath()
         val projectDir = findProjectDir(path)
         val context = Context(workspace)
@@ -119,30 +115,34 @@ class DocumentSyncService(private val workspace: Workspace, documentManager: Doc
                         return content.reader()
                     }
                 }, "", "", emptyList(), URI.create(uri).toFile().name))
-            context.findImmutableClass(projectDir, path, documentDtoCompiler.sourceTypeName)?.run {
-                val immutableType = ImmutableType(context, this)
-                val compile = documentDtoCompiler.compile(immutableType)
-                client?.publishDiagnostics(PublishDiagnosticsParams().apply {
-                    this.uri = uri
-                    diagnostics = emptyList()
-                })
-                documentManager.openOrUpdateDocument(
-                    uri,
-                    DtoDocument(
-                        content,
-                        context,
-                        DocumentContext(ast, lexer, token, immutableType, compile),
-                        DocumentContext(ast, lexer, token, immutableType, compile)
+            context.findImmutableClass(projectDir, path, documentDtoCompiler.sourceTypeName.substringAfterLast("."))
+                ?.also {
+                    workspace.updateSources(setOf(it.name))
+                    val immutableType =
+                        ImmutableType(context, workspace.findSource(it.name) ?: throw RuntimeException("WTF?"))
+                    val compile = documentDtoCompiler.compile(immutableType)
+                    context.updateSources()
+                    client?.publishDiagnostics(PublishDiagnosticsParams().apply {
+                        this.uri = uri
+                        diagnostics = emptyList()
+                    })
+                    documentManager.openOrUpdateDocument(
+                        uri,
+                        DtoDocument(
+                            content,
+                            context,
+                            DocumentContext(ast, lexer, token, immutableType, compile),
+                            DocumentContext(ast, lexer, token, immutableType, compile)
+                        )
                     )
-                )
-            } ?: run {
+                } ?: run {
                 client?.publishDiagnostics(PublishDiagnosticsParams().apply {
                     this.uri = uri
                     diagnostics = listOf(Diagnostic().apply {
                         range = Range(Position(0, 0), Position(0, 1))
                         severity = DiagnosticSeverity.Error
                         message =
-                            "No immutable type '${documentDtoCompiler.sourceTypeName}' found. Please build the project or use the export statement."
+                            "No immutable type '${documentDtoCompiler.sourceTypeName}' found. Please use the export statement."
                     })
                 })
             }

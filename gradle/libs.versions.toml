@@ -6,6 +6,8 @@ jimmer = "0.9.49"
 shadow = "9.0.0-beta2"
 jackson = "2.18.2"
 asm = "9.7.1"
+antlr = "4.13.2"
+tomlj = "1.1.1"
 
 [libraries]
 lsp4j = { module = "org.eclipse.lsp4j:org.eclipse.lsp4j", version.ref = "lsp4j" }
@@ -16,6 +18,9 @@ jimmer-sql = { module = "org.babyfish.jimmer:jimmer-sql", version.ref = "jimmer"
 jimmer-sqlKotlin = { module = "org.babyfish.jimmer:jimmer-sql-kotlin", version.ref = "jimmer" }
 jackson = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
 jackson-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
+jackson-dataformat-xml = { module = "com.fasterxml.jackson.dataformat:jackson-dataformat-xml", version.ref = "jackson" }
+tomlj = { module = "org.tomlj:tomlj", version.ref = "tomlj" }
+antlr = { module = "org.antlr:antlr4", version.ref = "antlr" }
 asm-tree = { module = "org.ow2.asm:asm-tree", version.ref = "asm" }
 
 [plugins]

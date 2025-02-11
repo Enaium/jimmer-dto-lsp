@@ -1,7 +1,4 @@
 import cn.enaium.jimmer.dto.lsp.utility.findDependenciesByCommand
-import cn.enaium.jimmer.dto.lsp.utility.findSubprojects
-import java.util.concurrent.Executors
-import java.util.concurrent.Future
 import kotlin.io.path.Path
 import kotlin.test.Test
 
