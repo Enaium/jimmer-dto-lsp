@@ -208,8 +208,8 @@ data class Workspace(
         )
     }
 
-    private val classCache = mutableListOf<String>()
-    private val annotationCache = mutableListOf<String>()
+    private val classCache = mutableSetOf<String>()
+    private val annotationCache = mutableSetOf<String>()
 
     private fun findClasspath(): List<Path> {
         return (dependencies + folders.map {
@@ -291,11 +291,11 @@ data class Workspace(
     }
 
 
-    fun findAnnotationNames(): List<String> {
+    fun findAnnotationNames(): Set<String> {
         return annotationCache
     }
 
-    fun findClassNames(): List<String> {
+    fun findClassNames(): Set<String> {
         return classCache
     }
 
