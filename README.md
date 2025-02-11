@@ -108,8 +108,25 @@
 ## Other Dependencies
 
 If your project has other immutable dependencies you need to add
-the [jimmer-gradle](https://github.com/Enaium/jimmer-gradle) plugin to your project.
-If you use Maven, you don't need to do anything.
+the dependencies configuration in the `pom.xml` or `libs.versions.toml` file
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+    <dependencies>
+        <dependency>
+            <groupId>cn.enaium</groupId>
+            <artifactId>immutable-dependency</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
+</project>
+```
+
+```toml
+[libraries]
+test = { module = "cn.enaium:immutable-dependency", version = "1.0-SNAPSHOT" }
+```
 
 ## Supported classpath
 
@@ -121,35 +138,3 @@ If you use Maven, you don't need to do anything.
 - `build/tmp/kotlin-classes/debug` Gradle Android Kotlin
 - `build/intermediates/javac/debug/classes` Gradle Android Java
 - `build/intermediates/javac/debug/compileDebugJavaWithJavac/classes` Gradle Android Java
-
-If you want to add a new classpath, you can add it to the `dependencies.json` file in the LSP server
-directory(`<userdir>/jimmer-dto-lsp`).
-
-In Windows your path should be like this:
-
-```json5
-{
-  "X:\\path\\to\\your\\project": [
-    "X:\\path\\to\\your\\xx.jar",
-    //Jar classpath
-    "X:\\path\\to\\your\\project\\build\\classes\\kotlin\\main",
-    //Directory classpath
-  ],
-}
-```
-
-In Linux or macOS your path should be like this:
-
-```json5
-{
-  "/path/to/your/project": [
-    "/path/to/your/xx.jar",
-    //Jar classpath
-    "/path/to/your/project/build/classes/kotlin/main",
-    //Directory classpath
-  ],
-}
-```
-
-If you want to add a new jar classpath automatically, you can use
-the [jimmer-gradle](https://github.com/Enaium/jimmer-gradle) plugin and then run the `generateLspDependencies` task.
