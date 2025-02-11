@@ -107,6 +107,8 @@
 
 ## Other Dependencies
 
+**Make sure you have downloaded the source jar file of the immutable dependency**
+
 If your project has other immutable dependencies you need to add
 the dependencies configuration in the `pom.xml` or `libs.versions.toml` file
 
