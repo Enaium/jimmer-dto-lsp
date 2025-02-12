@@ -127,7 +127,7 @@ data class Workspace(
         )
     }
 
-    private val sourceDirs = mapOf(
+    private val sourceDirs = listOf(
         Lang.JAVA to "src/main/java",
         Lang.JAVA to "src/test/java",
         Lang.KOTLIN to "src/main/kotlin",
