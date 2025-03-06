@@ -33,6 +33,7 @@ class DtoTextDocumentService(workspace: Workspace) : TextDocumentService {
     private val documentFormattingService = DocumentFormattingService(workspace, documentManager)
     private val documentHoverService = DocumentHoverService(documentManager)
     private val documentDefinitionService = DocumentDefinitionService(documentManager)
+    private val documentCodeLensService = DocumentCodeLensService(documentManager)
 
     override fun didOpen(params: DidOpenTextDocumentParams) {
         documentSyncService.didOpen(params)
@@ -76,5 +77,9 @@ class DtoTextDocumentService(workspace: Workspace) : TextDocumentService {
 
     override fun definition(params: DefinitionParams): CompletableFuture<Either<List<Location>, List<LocationLink>>> {
         return documentDefinitionService.definition(params)
+    }
+
+    override fun codeLens(params: CodeLensParams): CompletableFuture<List<CodeLens>> {
+        return documentCodeLensService.codeLens(params)
     }
 }

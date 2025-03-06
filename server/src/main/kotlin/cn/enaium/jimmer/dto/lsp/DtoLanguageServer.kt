@@ -86,6 +86,9 @@ class DtoLanguageServer : LanguageServer {
             setHoverProvider(true)
             setDefinitionProvider(true)
             setWorkspaceSymbolProvider(true)
+            codeLensProvider = CodeLensOptions().apply {
+                resolveProvider = true
+            }
         }))
     }
 

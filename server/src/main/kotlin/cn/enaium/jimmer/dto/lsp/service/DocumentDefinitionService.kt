@@ -87,7 +87,13 @@ class DocumentDefinitionService(documentManager: DocumentManager) : DocumentServ
                                 )
                             }
                         }
-                        projectDir.resolve("$out/generated/sources/annotationProcessor/java").toFile().listFiles()
+                        projectDir.resolve(
+                            if (out == "build") {
+                                "$out/generated/sources/annotationProcessor/java"
+                            } else {
+                                "$out/generated-sources/annotations"
+                            }
+                        ).toFile().listFiles()
                             ?.forEach { path ->
                                 !path.isDirectory && return@forEach
                                 val source =
