@@ -126,8 +126,9 @@ class KotlinProcessor(paths: List<Path>) : AbstractProcessor(paths) {
                                     }
                             }
                         if (classDeclarationContext.classBody() == null) {
-                            classDeclarationContext.delegationSpecifiers()?.delegationSpecifier()?.first()
-                                ?.constructorInvocation()?.callSuffix()?.annotatedLambda()?.first()?.functionLiteral()
+                            classDeclarationContext.delegationSpecifiers()?.delegationSpecifier()?.lastOrNull()
+                                ?.constructorInvocation()?.callSuffix()?.annotatedLambda()?.lastOrNull()
+                                ?.functionLiteral()
                                 ?.statements()?.statement()?.forEach { statement ->
                                     val name = statement.declaration()?.propertyDeclaration()?.variableDeclaration()
                                         ?.simpleIdentifier()?.Identifier()?.symbol?.text ?: return@forEach
