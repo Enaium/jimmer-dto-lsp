@@ -104,9 +104,8 @@ data class Workspace(
                             val group = module.substringBefore(":")
                             val name = module.substringAfter(":")
 
-                            val version = versions?.getString(
-                                dependency.getString("version.ref") ?: dependency.getString("version") ?: return@forEach
-                            ) ?: return@forEach
+                            val version = dependency.getString("version.ref")?.let { versions?.getString(it) }
+                                ?: dependency.getString("version") ?: return@forEach
                             Path(System.getProperty("user.home")).resolve(".gradle")
                                 .resolve("caches").resolve("modules-2").resolve("files-2.1")
                                 .resolve(group).resolve(name).resolve(version).walk()
