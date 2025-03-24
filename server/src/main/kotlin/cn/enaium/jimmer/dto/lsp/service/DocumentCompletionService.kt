@@ -18,7 +18,6 @@ package cn.enaium.jimmer.dto.lsp.service
 
 import cn.enaium.jimmer.dto.lsp.DocumentManager
 import cn.enaium.jimmer.dto.lsp.Workspace
-import cn.enaium.jimmer.dto.lsp.compiler.ImmutableProp
 import cn.enaium.jimmer.dto.lsp.utility.*
 import org.antlr.v4.runtime.Token
 import org.babyfish.jimmer.dto.compiler.DtoLexer
@@ -145,20 +144,6 @@ class DocumentCompletionService(private val workspace: Workspace, documentManage
                         .map { "${it.packageName}.${it.name}" }).toSet()
                 }
                 completionClass(TokenType.IMPORT.literal()) { workspace.findClassNames().toSet() }
-
-                val callTraceToRange = mutableMapOf<String, Pair<Token, Token>>()
-                val callTraceToProps = mutableMapOf<String, List<ImmutableProp>>()
-
-                document.rightTime.ast.dtoTypes.forEach { dtoType ->
-                    if (dtoType.name == null) return@forEach
-                    val bodyContext = dtoType.dtoBody() ?: return@forEach
-                    getBodyRange(bodyContext, dtoType.name.text, callTraceToRange)
-                }
-
-                document.rightTime.dtoTypes.forEach { dtoType ->
-                    if (dtoType.name == null) return@forEach
-                    getProps(dtoType.baseType, "${dtoType.name}", callTraceToProps)
-                }
 
                 val props = document.getProps(params.position)
 

@@ -315,62 +315,52 @@ fun ImmutableProp.type(): PropType {
     }
 }
 
-fun getProps(
+fun getPropsByTrace(
     immutableType: ImmutableType,
-    prefix: String,
-    results: MutableMap<String, List<ImmutableProp>>
-) {
-    results[prefix] = immutableType.properties.values.toList()
-    for (prop in immutableType.properties.values) {
-        if (prop.isAssociation(false) && prefix.count { it == '.' } < 10) {
-            prop.targetType?.run {
-                getProps(this, prefix + "." + prop.name, results)
-            }
+    trace: String
+): List<ImmutableProp> {
+    if (trace.isEmpty()) {
+        return immutableType.properties.values.toList()
+    } else {
+        val propName = trace.split(".").getOrNull(1) ?: return emptyList()
+        val prop = immutableType.properties[propName]?.takeIf { it.isAssociation(false) } ?: return emptyList()
+        prop.targetType?.also {
+            return getPropsByTrace(it, trace.substring(".${propName}".length, trace.length))
         }
     }
+    return emptyList()
 }
 
-fun getBodyRange(
+fun getPropRange(bodyContext: DtoParser.DtoBodyContext): MutableMap<String, Range> {
+    val results = mutableMapOf<String, Range>()
+    getPropRange(bodyContext, "", results)
+    return results
+}
+
+private fun getPropRange(
     bodyContext: DtoParser.DtoBodyContext,
-    prefix: String,
-    results: MutableMap<String, Pair<Token, Token>>
+    trace: String,
+    results: MutableMap<String, Range>
 ) {
-    results[prefix] = bodyContext.start to bodyContext.stop
+    results[trace] = bodyContext.range()
     for (explicitProp in bodyContext.explicitProps) {
         val positivePropContext = explicitProp.positiveProp() ?: continue
         val dtoBodyContext = positivePropContext.dtoBody() ?: continue
         val text = explicitProp.start.text
-        val x = prefix + "." + (if (text == "flat") explicitProp.positiveProp().props[0].text else text)
-        results[x] = explicitProp.start to explicitProp.stop
-        getBodyRange(dtoBodyContext, x, results)
+        val x = trace + "." + (if (text == "flat") explicitProp.positiveProp().props[0].text else text)
+        results[x] = explicitProp.range()
+        getPropRange(dtoBodyContext, x, results)
     }
 }
 
 fun DtoDocument.getProps(position: Position): Pair<String, List<ImmutableProp>>? {
-    val callTraceToRange = mutableMapOf<String, Pair<Token, Token>>()
-    val callTraceToProps = mutableMapOf<String, List<ImmutableProp>>()
-
-    rightTime.ast.dtoTypes.forEach { dtoType ->
-        if (dtoType.name == null) return@forEach
-        val bodyContext = dtoType.dtoBody() ?: return@forEach
-        getBodyRange(bodyContext, dtoType.name.text, callTraceToRange)
+    val dtoType = rightTime.ast.dtoTypes.find { it.dtoBody()?.range()?.overlaps(position) == true } ?: return null
+    dtoType.dtoBody()?.also {
+        val trace = getPropRange(it).entries.findLast { it.value.overlaps(position) }?.key ?: return null
+        val immutable = this.rightTime.immutable ?: return null
+        return trace to getPropsByTrace(immutable, trace)
     }
-
-    rightTime.dtoTypes.forEach { dtoType ->
-        if (dtoType.name == null) return@forEach
-        getProps(dtoType.baseType, "${dtoType.name}", callTraceToProps)
-    }
-
-    val callTrace = callTraceToRange.filter {
-        Range(
-            it.value.first.position(),
-            it.value.second.position()
-        ).overlaps(position)
-    }.entries.sortedWith { o1, o2 ->
-        o2.value.first.line - o1.value.first.line
-    }.firstOrNull()?.key ?: return null
-
-    return callTraceToProps[callTrace]?.let { callTrace to it }
+    return null
 }
 
 fun ExportStatementContext.getPackageName(): String {
