@@ -4,7 +4,20 @@
     <vendor email="enaium@outlook.com" url="https://www.enaium.cn">Enaium</vendor>
     <description>
         <![CDATA[<h1>A language server for Jimmer DTO</h1>
-        <p>Provides support for Jimmer DTO in IntelliJ IDEA.</p>]]>
+        <p>Provides support for Jimmer DTO in IntelliJ IDEA.</p>
+        <h2>Features</h2>
+        <ul>
+            <li>Syntax highlighting.</li>
+            <li>Compiler checking.</li>
+            <li>Automatic completion for prop, macro, function, keyword, comment etc.</li>
+            <li>Folding code block.</li>
+            <li>Structure view.</li>
+            <li>Format dto file.</li>
+            <li>Hover for export, import, macro, prop, alias group etc.</li>
+            <li>Go to definition.</li>
+            <li>Find symbol.</li>
+            <li>Mark dto generated.</li>
+        </ul>]]>
     </description>
     <change-notes>
         <![CDATA[Please see the project's GitHub releases page for release notes.]]>

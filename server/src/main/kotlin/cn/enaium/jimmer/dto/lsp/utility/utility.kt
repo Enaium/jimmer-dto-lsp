@@ -20,8 +20,6 @@ import cn.enaium.jimmer.dto.lsp.DtoDocument
 import cn.enaium.jimmer.dto.lsp.Main
 import cn.enaium.jimmer.dto.lsp.compiler.ImmutableProp
 import cn.enaium.jimmer.dto.lsp.compiler.ImmutableType
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.Token
 import org.babyfish.jimmer.dto.compiler.Constants
@@ -101,91 +99,6 @@ private fun findClasspath(path: Path, results: MutableList<Path>) {
             results.add(file)
         }
     }
-}
-
-fun findDependenciesByCommand(project: Path): Map<String, List<Path>> {
-    val dependencyMap = mutableMapOf<String, List<Path>>()
-    val processBuilder = ProcessBuilder()
-    processBuilder.directory(project.toFile())
-    processBuilder.redirectErrorStream(true)
-    if (isGradleProject(project)) {
-        processBuilder.command(
-            *(if (System.getProperty("os.name").contains("Win")) {
-                arrayOf("powershell", "/c") + if (project.resolve("gradlew.bat").exists()) {
-                    arrayOf(project.resolve("gradlew.bat").absolutePathString())
-                } else {
-                    arrayOf("gradle")
-                }
-            } else {
-                arrayOf("bash", "-c") + if (project.resolve("gradlew").exists()) {
-                    arrayOf(project.resolve("gradlew").absolutePathString())
-                } else {
-                    arrayOf("gradle")
-                }
-            }),
-            "--build-cache",
-            "allProjectDependencies"
-        )
-        val start = processBuilder.start()
-        start.inputStream.use { input ->
-            val readText = input.reader().readText()
-            if (!readText.contains("SUCCESS")) {
-                return emptyMap()
-            }
-            readText.lines().find { it.startsWith("{") }?.also { json ->
-                jacksonObjectMapper().readValue<Map<String, List<String>>>(json).forEach { (key, value) ->
-                    dependencyMap[key] = value.map { Path(it) }
-                }
-            }
-        }
-        start.waitFor()
-    } else if (isMavenProject(project)) {
-        processBuilder.command(
-            *(if (System.getProperty("os.name").contains("Win")) {
-                arrayOf("powershell", "/c") + if (project.resolve("mvnw.cmd").exists()) {
-                    arrayOf(project.resolve("mvnw.cmd").absolutePathString())
-                } else {
-                    arrayOf("mvn")
-                }
-            } else {
-                arrayOf("bash", "-c") + if (project.resolve("mvnw").exists()) {
-                    arrayOf(project.resolve("mvnw").absolutePathString())
-                } else {
-                    arrayOf("mvn")
-                }
-            }),
-            "dependency:build-classpath",
-        )
-        val start = processBuilder.start()
-        start.inputStream.use { input ->
-            val readText = input.reader().readText()
-            if (!readText.contains("SUCCESS")) {
-                return emptyMap()
-            }
-
-            val iterator = readText.lines().iterator()
-            while (iterator.hasNext()) {
-                val line = iterator.next()
-                if (line.contains("@")) {
-                    val substring = line.substring(line.indexOf("@") + 1)
-                    val name = substring.split(" ")[1]
-                    if (iterator.next() == "[INFO] Dependencies classpath:") {
-                        val dependencies = iterator.next()
-                        dependencyMap[name] = dependencies.split(File.pathSeparator).map { Path(it) }
-                    }
-                }
-            }
-        }
-    }
-    return dependencyMap
-}
-
-fun isGradleProject(project: Path): Boolean {
-    return listOf("build.gradle.kts", "build.gradle").any { project.resolve(it).exists() }
-}
-
-fun isMavenProject(project: Path): Boolean {
-    return project.resolve("pom.xml").exists()
 }
 
 fun isProject(path: Path): Boolean {

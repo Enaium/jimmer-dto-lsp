@@ -12,15 +12,16 @@
 
 ## Features
 
-- Syntax highlighting
-- Compiler checking
+- Syntax highlighting.
+- Compiler checking.
 - Automatic completion for prop, macro, function, keyword, comment etc.
-- Folding
-- Structure view
-- Format export and import
+- Folding code block.
+- Structure view.
+- Format dto file.
 - Hover for export, import, macro, prop, alias group etc.
-- Go to definition
-- Find symbol
+- Go to definition.
+- Find symbol.
+- Mark dto generated.
 
 ## Implemented LSP features
 
@@ -35,6 +36,7 @@
 - ✅ [textDocument/documentSymbol](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_documentSymbol).
 - ✅ [textDocument/hover](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_hover).
 - ✅ [textDocument/definition](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_definition).
+- ✅ [textDocument/codeLens](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_codeLens).
 - ✅ [workspace/executeCommand](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_executeCommand).
 - ✅ [workspace/symbol](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_symbol).
 - ✅ [workspace/configuration](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_configuration).
@@ -82,10 +84,7 @@
 
 ## Requirements
 
-- You need to install JDK 17 or later in your system environment, but make sure your jdk version is compatible with your
-  project
-- Your project should have `gradlew` or `mvnw` file otherwise you need to install Gradle or Maven in your
-  system environment
+- You need to install JDK 17 or later in your system environment
 
 ## Installation
 
