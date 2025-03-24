@@ -17,56 +17,62 @@
 package cn.enaium.jimmer.dto.lsp.service
 
 import cn.enaium.jimmer.dto.lsp.DocumentManager
-import org.antlr.v4.runtime.Token
-import org.babyfish.jimmer.dto.compiler.DtoLexer
-import org.eclipse.lsp4j.*
+import cn.enaium.jimmer.dto.lsp.utility.range
+import org.babyfish.jimmer.dto.compiler.DtoParser
+import org.eclipse.lsp4j.FoldingRange
+import org.eclipse.lsp4j.FoldingRangeKind
+import org.eclipse.lsp4j.FoldingRangeRequestParams
+import org.eclipse.lsp4j.Range
 import java.util.concurrent.CompletableFuture
 
 /**
  * @author Enaium
  */
 class DocumentFoldingRangeService(documentManager: DocumentManager) : DocumentServiceAdapter(documentManager) {
+
+    private val ranges = mutableListOf<Range>()
+
     override fun foldingRange(params: FoldingRangeRequestParams): CompletableFuture<List<FoldingRange>> {
-        val ranges = mutableListOf<FoldingRange>()
         val document =
-            documentManager.getDocument(params.textDocument.uri) ?: return CompletableFuture.completedFuture(ranges)
-        return CompletableFuture.completedFuture(getBodyRange(document.realTime.commonToken.tokens).map {
+            documentManager.getDocument(params.textDocument.uri)
+                ?: return CompletableFuture.completedFuture(emptyList())
+        ranges.clear()
+        dto(document.realTime.ast)
+
+        return CompletableFuture.completedFuture(ranges.map {
             FoldingRange(it.start.line, it.end.line - 1).apply {
                 kind = FoldingRangeKind.Region
             }
         })
     }
 
-    private fun getBodyRange(tokens: List<Token>): List<Range> {
-        val filter = tokens.filter { it.type == DtoLexer.T__5 || it.type == DtoLexer.T__7 }
-        val ranges = mutableListOf<Range>()
-        filter.forEach { _ ->
-            var startLine = -1
-            var startCount = 0
+    private fun positiveProp(positivePropContext: DtoParser.PositivePropContext) {
+        positivePropContext.dtoBody()?.also {
+            ranges.add(it.range())
+            it.explicitProp()?.takeIf { it.isNotEmpty() }?.forEach { explicitProp ->
+                explicitProp(explicitProp)
+            }
+        }
+    }
 
-            filter.forEach {
-                when (it.type) {
-                    DtoLexer.T__5 -> {
-                        if (!ranges.any { range -> range.start.line == it.line - 1 }) {
-                            if (startLine == -1) {
-                                startLine = it.line - 1
-                            } else {
-                                startCount++
-                            }
-                        }
-                    }
+    private fun explicitProp(explicitPropContext: DtoParser.ExplicitPropContext) {
+        explicitPropContext.positiveProp()?.also {
+            positiveProp(it)
+        }
+        explicitPropContext.aliasGroup()?.also {
+            ranges.add(it.range())
+            it.positiveProp()?.takeIf { it.isNotEmpty() }?.forEach { positiveProp ->
+                positiveProp(positiveProp)
+            }
+        }
+    }
 
-                    DtoLexer.T__7 -> {
-                        val endLine = it.line - 1
-                        if (!ranges.any { range -> range.end.line == endLine }) {
-                            if (startCount == 0) {
-                                ranges.add(Range(Position(startLine, 0), Position(endLine, 0)))
-                                startLine = -1
-                            } else {
-                                startCount--
-                            }
-                        }
-                    }
+    private fun dto(ast: DtoParser.DtoContext): List<Range> {
+        ast.dtoTypes.forEach { dtoType ->
+            dtoType.dtoBody()?.also { dtoTypeBody ->
+                ranges.add(dtoTypeBody.range())
+                dtoTypeBody.explicitProp()?.takeIf { it.isNotEmpty() }?.forEach { explicitProp ->
+                    explicitProp(explicitProp)
                 }
             }
         }

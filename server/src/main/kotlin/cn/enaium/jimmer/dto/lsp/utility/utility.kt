@@ -22,6 +22,7 @@ import cn.enaium.jimmer.dto.lsp.compiler.ImmutableProp
 import cn.enaium.jimmer.dto.lsp.compiler.ImmutableType
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.Token
 import org.babyfish.jimmer.dto.compiler.Constants
 import org.babyfish.jimmer.dto.compiler.DtoLexer
@@ -388,6 +389,10 @@ fun String.toPropName(): String {
     } else {
         this
     }
+}
+
+fun ParserRuleContext.range(): Range {
+    return Range(this.start.position(), this.stop.position())
 }
 
 val commonFuncNames = setOf("flat")
