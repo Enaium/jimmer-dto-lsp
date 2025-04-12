@@ -372,10 +372,6 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
         addToken(limit.start, SemanticType.MACRO)
     }
 
-    private fun offset(offset: DtoParser.OffsetContext) {
-        addToken(offset.start, SemanticType.MACRO)
-    }
-
     private fun batch(batch: DtoParser.BatchContext) {
         addToken(batch.start, SemanticType.MACRO)
     }
@@ -402,9 +398,6 @@ class DocumentSemanticTokensFullService(documentManager: DocumentManager) : Docu
         }
         configuration.limit()?.also { limit ->
             limit(limit)
-        }
-        configuration.offset()?.also { offset ->
-            offset(offset)
         }
         configuration.batch()?.also { batch ->
             batch(batch)

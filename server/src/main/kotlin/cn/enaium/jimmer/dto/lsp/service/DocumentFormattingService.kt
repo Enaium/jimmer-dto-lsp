@@ -349,19 +349,13 @@ class DocumentFormattingService(val workspace: Workspace, documentManager: Docum
         var text = ""
         text += limit.start.text
         text += TokenType.LEFT_PARENTHESIS.literal()
-        limit.IntegerLiteral()?.also { integerLiteral ->
-            text += integerLiteral.text
+        limit.limitArg?.also {
+            text += limit.limitArg.text
         }
-        text += TokenType.RIGHT_PARENTHESIS.literal()
-        return text
-    }
-
-    private fun offset(offset: DtoParser.OffsetContext): String {
-        var text = ""
-        text += offset.start.text
-        text += TokenType.LEFT_PARENTHESIS.literal()
-        offset.IntegerLiteral()?.also { integerLiteral ->
-            text += integerLiteral.text
+        limit.offsetArg?.also { offsetArg ->
+            text += TokenType.COMMA.literal()
+            text += space
+            text += offsetArg.text
         }
         text += TokenType.RIGHT_PARENTHESIS.literal()
         return text
@@ -408,9 +402,6 @@ class DocumentFormattingService(val workspace: Workspace, documentManager: Docum
         }
         configuration.limit()?.also { limit ->
             text += limit(limit)
-        }
-        configuration.offset()?.also { offset ->
-            text += offset(offset)
         }
         configuration.batch()?.also { batch ->
             text += batch(batch)
@@ -544,6 +535,13 @@ class DocumentFormattingService(val workspace: Workspace, documentManager: Docum
             text += TokenType.COLON.literal()
             text += space
             text += typeRef(typeRef, "")
+        }
+        userProp.defaultValue?.also {
+            text += " ${TokenType.EQUAL.literal()} "
+            userProp.defaultMinus?.also {
+                text += TokenType.MINUS.literal()
+            }
+            text += it.text
         }
         return text
     }

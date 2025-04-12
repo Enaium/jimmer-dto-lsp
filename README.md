@@ -130,14 +130,3 @@ the dependencies configuration in the `pom.xml` or `xxx.toml` file
 [libraries]
 test = { module = "cn.enaium:immutable-dependency", version = "1.0-SNAPSHOT" }
 ```
-
-## Supported classpath
-
-- `build/classes/kotlin/main` Gradle Kotlin
-- `build/classes/kotlin/test` Gradle Kotlin
-- `build/classes/java/main` Gradle Java
-- `build/classes/java/test` Gradle Java
-- `target/classes` Maven Java or Kotlin
-- `build/tmp/kotlin-classes/debug` Gradle Android Kotlin
-- `build/intermediates/javac/debug/classes` Gradle Android Java
-- `build/intermediates/javac/debug/compileDebugJavaWithJavac/classes` Gradle Android Java
